@@ -1,0 +1,3308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">GHITA 1 — Résidence Al Andalus</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+// Proxy pour les appels HTML avant que le script principal soit parsé
+function initFirebase(cfg){ window._pendingInitFirebase = cfg || true; }
+function showScreen(n){ window._pendingShowScreen = n; }
+window.addEventListener('DOMContentLoaded', function(){
+  // Le vrai initFirebase remplace le proxy — rien à faire, boot() s'en charge
+});
+</script>
+<style>
+:root {
+  --navy: #0f1f3d;
+  --navy2: #1a3260;
+  --gold: #c9a84c;
+  --gold2: #e8c87a;
+  --cream: #f7f5f0;
+  --white: #ffffff;
+  --red: #c0392b;
+  --red-bg: #fdf0ef;
+  --green: #1e7c4f;
+  --green-bg: #edf7f2;
+  --amber: #b5650d;
+  --amber-bg: #fef3e2;
+  --gray: #64748b;
+  --gray-bg: #f1f5f9;
+  --border: #e2e8f0;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--navy); font-size: 14px; min-height: 100vh; }
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* ── LOGIN SCREEN ── */
+#screen-login {
+  align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  flex-direction: column; gap: 0; padding: 2rem;
+}
+.login-card {
+  background: white; border-radius: 20px; padding: 2.5rem;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+}
+.login-logo { text-align: center; margin-bottom: 2rem; }
+.login-logo-icon {
+  width: 64px; height: 64px; border-radius: 16px;
+  background: var(--navy); display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+}
+.login-logo-icon svg { width: 32px; height: 32px; color: var(--gold); }
+.login-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--navy); }
+.login-sub { font-size: 13px; color: var(--gray); margin-top: 4px; }
+.login-tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--gray-bg); border-radius: var(--radius-sm); padding: 4px;
+  margin-bottom: 1.75rem;
+}
+.login-tab {
+  padding: 9px; text-align: center; border-radius: 6px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--gray); transition: all 0.2s;
+}
+.login-tab.active { background: white; color: var(--navy); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--gray); margin-bottom: 5px; }
+.form-group input, .form-group select {
+  width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif;
+  color: var(--navy); background: white; transition: border-color 0.15s;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--navy); }
+.pin-row { display: flex; gap: 10px; }
+.pin-row input {
+  flex: 1; text-align: center; font-size: 22px; font-weight: 600;
+  letter-spacing: 4px; padding: 12px;
+}
+.btn-login {
+  width: 100%; padding: 13px; background: var(--navy); color: white;
+  border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+  margin-top: 6px;
+}
+.btn-login:hover { background: var(--navy2); }
+.btn-login.gold { background: var(--gold); color: var(--navy); }
+.btn-login.gold:hover { background: var(--gold2); }
+.login-error {
+  background: var(--red-bg); color: var(--red); border: 1px solid #f5c6c2;
+  border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px;
+  margin-bottom: 12px; display: none;
+}
+.login-hint { text-align: center; font-size: 12px; color: var(--gray); margin-top: 1rem; }
+
+/* ── ADMIN LAYOUT ── */
+#screen-admin { flex-direction: row; }
+.sidebar {
+  width: 240px; background: var(--navy); flex-shrink: 0;
+  display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0;
+}
+.sidebar-logo { padding: 1.5rem 1.25rem 1rem; }
+.sl-title { font-family: 'DM Serif Display', serif; color: var(--gold); font-size: 18px; }
+.sl-sub { color: rgba(255,255,255,0.35); font-size: 11px; margin-top: 2px; }
+.nav-sep { padding: 0.75rem 1.25rem 0.25rem; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; margin: 1px 8px; border-radius: var(--radius-sm);
+  color: rgba(255,255,255,0.55); cursor: pointer; font-size: 13px;
+  transition: all 0.15s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+.nav-item.active { background: rgba(201,168,76,0.15); color: var(--gold2); font-weight: 500; }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+.sidebar-footer { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.sf-name { color: rgba(255,255,255,0.45); font-size: 11px; }
+.sf-role { color: var(--gold); font-size: 12px; font-weight: 500; margin-top: 2px; }
+.btn-logout-sidebar {
+  display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.4);
+  background: none; border: none; cursor: pointer; font-size: 12px;
+  font-family: 'DM Sans', sans-serif; margin-top: 10px; padding: 0;
+}
+.btn-logout-sidebar:hover { color: rgba(255,255,255,0.7); }
+
+.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; height: 100vh; }
+.topbar {
+  background: white; border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem; height: 56px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.topbar-title { font-weight: 600; font-size: 15px; flex: 1; }
+.topbar-search { position: relative; }
+.topbar-search input {
+  padding: 8px 12px 8px 34px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13px; background: var(--gray-bg);
+  font-family: 'DM Sans', sans-serif; color: var(--navy); width: 280px;
+}
+.topbar-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--gray); }
+.admin-content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CARDS & STATS ── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card {
+  background: white; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.25rem; position: relative; overflow: hidden;
+}
+.stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.stat-card.blue::after { background: var(--navy); }
+.stat-card.green::after { background: var(--green); }
+.stat-card.red::after { background: var(--red); }
+.stat-card.gold::after { background: var(--gold); }
+.stat-lbl { font-size: 11px; color: var(--gray); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.stat-val { font-family: 'DM Serif Display', serif; font-size: 26px; }
+.stat-val.green { color: var(--green); }
+.stat-val.red { color: var(--red); }
+.stat-val.gold { color: var(--amber); }
+.stat-hint { font-size: 11px; color: var(--gray); margin-top: 4px; }
+.card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+.card-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.card-title { font-weight: 600; font-size: 14px; }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left; padding: 10px 12px; color: var(--gray);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border); background: var(--gray-bg); white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:hover { background: #fafbfc; }
+tbody tr:last-child { border-bottom: none; }
+td { padding: 10px 12px; vertical-align: middle; }
+
+/* ── BADGES ── */
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.bg-green { background: var(--green-bg); color: var(--green); }
+.bg-red { background: var(--red-bg); color: var(--red); }
+.bg-amber { background: var(--amber-bg); color: var(--amber); }
+.bg-gray { background: var(--gray-bg); color: var(--gray); }
+.bg-navy { background: #e8edf5; color: var(--navy); }
+
+/* ── AVATAR ── */
+.av { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+.rc { display: flex; align-items: center; gap: 10px; }
+
+/* ── PROGRESS ── */
+.prog { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.prog-fill { height: 100%; border-radius: 3px; }
+
+/* ── BUTTONS ── */
+.btn { padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border); background: white; color: var(--navy); transition: all 0.15s; }
+.btn:hover { background: var(--gray-bg); }
+.btn.primary { background: var(--navy); color: white; border-color: var(--navy); }
+.btn.primary:hover { background: var(--navy2); }
+.btn.gold { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+.btn.danger { background: var(--red); color: white; border-color: var(--red); }
+.btn.sm { padding: 5px 11px; font-size: 12px; }
+
+/* ── FILTERS ── */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+.filters select, .filters input {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--navy); background: white;
+}
+.filters input { width: 220px; }
+
+/* ── MODAL ── */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.5); z-index: 200; align-items: center; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: white; border-radius: 16px; padding: 1.75rem; width: 520px; max-width: 95vw; max-height: 92vh; overflow-y: auto; }
+.modal-hd { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+.modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; }
+.modal-x { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--gray); }
+.modal-ft { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.fg label { font-size: 12px; font-weight: 500; color: var(--gray); }
+.fg input, .fg select, .fg textarea {
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--navy); background: white;
+}
+.fg input:focus, .fg select:focus { outline: none; border-color: var(--navy); }
+
+/* ── CODE BOX ── */
+.code-box {
+  background: var(--navy); color: var(--gold2); font-family: monospace;
+  font-size: 28px; letter-spacing: 8px; text-align: center;
+  padding: 16px; border-radius: var(--radius-sm); margin: 12px 0; font-weight: 700;
+}
+
+/* ── ALERT ── */
+.alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+.alert.red { background: var(--red-bg); color: var(--red); border: 1px solid #f5c6c2; }
+.alert.amber { background: var(--amber-bg); color: var(--amber); border: 1px solid #f0d5a0; }
+
+/* ── PORTAL (RESIDENT) ── */
+#screen-portal {
+  flex-direction: column; background: var(--cream);
+  min-height: 100vh;
+}
+.portal-topbar {
+  background: var(--navy); padding: 0 1.5rem; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.portal-topbar-logo { font-family: 'DM Serif Display', serif; color: var(--gold); font-size: 16px; }
+.btn-portal-logout { background: none; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'DM Sans', sans-serif; }
+.btn-portal-logout:hover { background: rgba(255,255,255,0.08); }
+.portal-body { max-width: 600px; margin: 0 auto; padding: 2rem 1rem; width: 100%; }
+.portal-hero {
+  background: var(--navy); border-radius: 16px; padding: 2rem;
+  color: white; margin-bottom: 1.5rem; position: relative; overflow: hidden;
+}
+.portal-hero::before {
+  content: ''; position: absolute; right: -40px; top: -40px;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: rgba(201,168,76,0.12);
+}
+.portal-hero::after {
+  content: ''; position: absolute; right: 40px; bottom: -50px;
+  width: 100px; height: 100px; border-radius: 50%;
+  background: rgba(201,168,76,0.07);
+}
+.ph-av {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(201,168,76,0.2); border: 2px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--gold2);
+  margin-bottom: 12px;
+}
+.ph-name { font-family: 'DM Serif Display', serif; font-size: 22px; }
+.ph-appt { color: rgba(255,255,255,0.55); font-size: 13px; margin-top: 3px; }
+.ph-balance { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: flex-end; }
+.ph-bal-lbl { font-size: 11px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.ph-bal-val { font-family: 'DM Serif Display', serif; font-size: 32px; }
+.ph-bal-val.owed { color: #ff8a80; }
+.ph-bal-val.ok { color: #69f0ae; }
+.ph-cotis { text-align: right; }
+.ph-cotis-val { font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.8); }
+.ph-cotis-lbl { font-size: 11px; color: rgba(255,255,255,0.4); }
+.month-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+@media (max-width: 480px) { .month-grid { grid-template-columns: repeat(4, 1fr); } }
+.mc {
+  border-radius: 10px; padding: 10px 4px; text-align: center;
+  border: 1px solid var(--border); transition: transform 0.15s;
+}
+.mc:hover { transform: scale(1.04); }
+.mc.paid { background: var(--green-bg); border-color: #b7e4cf; }
+.mc.unpaid { background: var(--red-bg); border-color: #f5c6c2; }
+.mc.future { background: var(--gray-bg); }
+.mc-name { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.mc.paid .mc-name { color: var(--green); }
+.mc.unpaid .mc-name { color: var(--red); }
+.mc.future .mc-name { color: var(--gray); }
+.mc-ico { font-size: 16px; margin: 5px 0 3px; }
+.mc-amt { font-size: 11px; font-weight: 500; }
+.mc.paid .mc-amt { color: var(--green); }
+.mc.unpaid .mc-amt { color: var(--red); }
+.mc.future .mc-amt { color: var(--gray); }
+.recap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.recap-cell { text-align: center; padding: 14px 8px; border-radius: 10px; }
+.recap-val { font-family: 'DM Serif Display', serif; font-size: 24px; margin-bottom: 4px; }
+.recap-lbl { font-size: 12px; }
+
+/* ── PRINT ── */
+.print-sheet { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem; }
+.psh { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.75rem; padding-bottom: 1.25rem; border-bottom: 2px solid var(--navy); }
+.psh-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--navy); }
+.psh-meta { text-align: right; font-size: 12px; color: var(--gray); line-height: 1.7; }
+.psh-subject { background: var(--red-bg); border-left: 4px solid var(--red); padding: 10px 14px; margin-bottom: 1.25rem; border-radius: 0 8px 8px 0; font-size: 13px; }
+.ptable { width: 100%; border-collapse: collapse; font-size: 12px; margin: 1rem 0; }
+.ptable th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; }
+.ptable td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.ptable tr.total td { font-weight: 600; background: #fef9f0; }
+.psig { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 12px; color: var(--gray); line-height: 2; }
+
+/* CODES TABLE */
+.codes-table { font-size: 13px; }
+.codes-table td, .codes-table th { padding: 8px 12px; }
+
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE MOBILE  (≤ 768px)
+══════════════════════════════════════════════ */
+
+/* ── HAMBURGER BUTTON (visible uniquement mobile) ── */
+.mob-menu-btn {
+  display: none;
+  background: none; border: none; cursor: pointer; padding: 6px;
+  color: var(--navy); flex-shrink: 0;
+}
+.mob-menu-btn svg { width: 22px; height: 22px; display: block; }
+
+/* ── OVERLAY pour fermer le menu ── */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); z-index: 99;
+}
+.sidebar-overlay.open { display: block; }
+
+/* ── BOTTOM NAV (mobile uniquement) ── */
+.bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--navy); border-top: 1px solid rgba(255,255,255,0.08);
+  z-index: 90; height: 60px;
+  align-items: stretch;
+}
+.bottom-nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px; cursor: pointer; padding: 4px 2px;
+  color: rgba(255,255,255,0.45); transition: color 0.15s;
+  font-size: 9px; font-weight: 500; letter-spacing: 0.03em;
+  position: relative;
+}
+.bottom-nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+.bottom-nav-item.active { color: var(--gold2); }
+.bottom-nav-item .bnav-badge {
+  position: absolute; top: 5px; right: calc(50% - 14px);
+  background: var(--red); color: white; font-size: 9px;
+  font-weight: 700; padding: 1px 5px; border-radius: 20px;
+  min-width: 16px; text-align: center;
+}
+
+/* ── MOBILE FAB (bouton flottant + Résident) ── */
+.mob-fab {
+  display: none;
+  position: fixed; bottom: 72px; right: 16px; z-index: 85;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--gold); color: var(--navy);
+  border: none; cursor: pointer; font-size: 24px; font-weight: 700;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+  align-items: center; justify-content: center;
+}
+
+@media (max-width: 768px) {
+
+  /* ── LAYOUT ADMIN ── */
+  #screen-admin { flex-direction: column; }
+
+  /* Sidebar devient un drawer latéral */
+  .sidebar {
+    position: fixed; left: -260px; top: 0; bottom: 0;
+    width: 260px; height: 100vh; z-index: 100;
+    transition: left 0.28s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+  }
+  .sidebar.open { left: 0; }
+
+  /* Bouton hamburger visible */
+  .mob-menu-btn { display: flex; }
+
+  /* Topbar mobile */
+  .topbar {
+    padding: 0 12px; height: 52px; gap: 8px;
+    position: sticky; top: 0; z-index: 80;
+  }
+  .topbar-title { font-size: 14px; }
+
+  /* Cacher recherche + statuts dans topbar mobile (accessibles via menu) */
+  .topbar-search,
+  #fb-status,
+  #ls-status { display: none; }
+
+  /* Bouton "Nouveau résident" dans topbar → caché (remplacé par FAB) */
+  .topbar .btn.primary.sm { display: none; }
+
+  /* Contenu principal */
+  .admin-main { height: 100vh; padding-bottom: 60px; }
+  .admin-content { padding: 1rem 12px; padding-bottom: 80px; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav { display: flex; }
+
+  /* ── FAB ── */
+  .mob-fab { display: flex; }
+
+  /* ── STATS GRID ── */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px; margin-bottom: 1rem;
+  }
+  .stat-card { padding: 1rem; }
+  .stat-val { font-size: 20px; }
+
+  /* ── DASHBOARD CHARTS ── */
+  #adm-dashboard > div[style*="grid-template-columns:2fr 1fr"] {
+    display: flex !important; flex-direction: column; gap: 10px;
+  }
+
+  /* ── TABLES : scroll horizontal ── */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 600px; }
+  td, th { padding: 8px 10px; font-size: 12px; }
+
+  /* ── FILTERS ── */
+  .filters { gap: 6px; }
+  .filters input { width: 100%; }
+  .filters select { flex: 1; min-width: 120px; }
+
+  /* ── CARDS ── */
+  .card { padding: 1rem; }
+
+  /* ── MODALS ── */
+  .overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    width: 100%; max-width: 100%; border-radius: 20px 20px 0 0;
+    max-height: 90vh; padding: 1.5rem 1.25rem;
+  }
+  .form-row { grid-template-columns: 1fr; gap: 0; }
+
+  /* ── LOGIN ── */
+  .login-card { padding: 1.75rem 1.25rem; }
+
+  /* ── PORTAL RÉSIDENT ── */
+  .portal-body { padding: 1rem; }
+  .ph-bal-val { font-size: 24px; }
+
+  /* ── COMPTA : form dépense vertical ── */
+  #adm-compta > .card > div[style*="grid-template-columns"] {
+    display: flex !important; flex-direction: column; gap: 0;
+  }
+
+  /* ── RAPPORT : header bâtiment wrap ── */
+  #rapport-content .card > div[style*="justify-content:space-between"] {
+    flex-direction: column; gap: 6px; align-items: flex-start !important;
+  }
+
+  /* ── SIDEBAR SETUP (Firebase) ── */
+
+
+  /* ── TOPBAR : statuts firebase déplacés ── */
+  .mob-status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 6px 12px; gap: 8px; font-size: 11px;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Sur desktop on cache tout ce qui est uniquement mobile */
+  .bottom-nav { display: none !important; }
+  .mob-fab { display: none !important; }
+  .mob-menu-btn { display: none !important; }
+  .sidebar-overlay { display: none !important; }
+  .mob-status-bar { display: none !important; }
+}
+
+@media print {
+  #screen-admin, #screen-login { display: none !important; }
+  #screen-portal .portal-topbar, #screen-portal .portal-body > *:not(.print-sheet) { display: none !important; }
+  .print-sheet { border: none; border-radius: 0; padding: 1rem; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     SCREEN 1 : LOGIN
+══════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div class="login-title">GHITA 1</div>
+      <div class="login-sub" id="login-sub-res">Résidence Al Andalus · Casablanca</div>
+    </div>
+
+    <div class="login-tabs">
+      <div class="login-tab active" id="tab-btn-admin" onclick="switchLoginTab('admin')">Administration</div>
+      <div class="login-tab" id="tab-btn-resident" onclick="switchLoginTab('resident')">Espace Résident</div>
+    </div>
+
+    <!-- ADMIN LOGIN -->
+    <div id="login-admin-form">
+      <div class="form-group">
+        <label>Identifiant syndic</label>
+        <input type="text" id="admin-user" placeholder="syndic" value="syndic">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" id="admin-pass" placeholder="••••••" value="1234">
+      </div>
+      <div class="login-error" id="admin-error">Identifiant ou mot de passe incorrect.</div>
+      <button class="btn-login gold" onclick="loginAdmin()">Accéder au tableau de bord</button>
+      <div class="login-hint">Démo : identifiant <strong>syndic</strong> · mot de passe <strong>1234</strong></div>
+    </div>
+
+    <!-- RESIDENT LOGIN -->
+    <div id="login-resident-form" style="display:none;">
+      <div class="form-group">
+        <label>Numéro d'appartement</label>
+        <select id="res-appt-sel">
+          <option value="">Sélectionner votre appartement...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Code PIN (4 chiffres)</label>
+        <div class="pin-row">
+          <input type="password" id="pin-input" maxlength="4" placeholder="••••" inputmode="numeric" autocomplete="off">
+        </div>
+      </div>
+      <div class="login-error" id="res-error">Appartement ou code PIN incorrect.</div>
+      <button class="btn-login" onclick="loginResident()">Accéder à mon espace</button>
+      <div class="login-hint">Votre code PIN vous a été remis par le syndic.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     SCREEN 2 : ADMIN
+══════════════════════════════════ -->
+<div class="screen" id="screen-admin">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sl-title">GHITA 1</div>
+      <div class="sl-sub" id="sidebar-sub">Résidence Al Andalus · 2025</div>
+    </div>
+    <div class="nav-sep">Administration</div>
+    <div class="nav-item active" onclick="navAdmin('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Tableau de bord
+    </div>
+    <div class="nav-item" onclick="navAdmin('residents',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Résidents &amp; Codes PIN
+    </div>
+    <div class="nav-item" onclick="navAdmin('arrieres',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Arriérés
+      <span class="nav-badge" id="nb-arrears">—</span>
+    </div>
+    <div class="nav-item" onclick="navAdmin('paiements',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Paiements
+    </div>
+    <div class="nav-item" onclick="navAdmin('compta',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Comptabilité
+    </div>
+    <div class="nav-sep">Outils</div>
+    <div class="nav-item" onclick="navAdmin('fiches',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Fiches &amp; Impressions
+    </div>
+    <div class="nav-item" onclick="navAdmin('rapport',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Rapport Global
+    </div>
+    <div class="nav-item" onclick="navAdmin('codes',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Gestion des codes PIN
+    </div>
+    <div class="sidebar-footer">
+      <div class="sf-name">Connecté en tant que</div>
+      <div class="sf-role" id="sidebar-admin-name">Syndic · Mohamed Rachidi</div>
+      <button class="btn-logout-sidebar" style="margin-top:6px;" onclick="openSettingsModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Paramètres
+      </button>
+      <div style="border-top:1px solid rgba(255,255,255,0.08);margin:10px 0 8px;"></div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:6px;">Données</div>
+      <button class="btn-logout-sidebar" onclick="exportJSON()" title="Exporter toutes les données en JSON">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter sauvegarde
+      </button>
+      <button class="btn-logout-sidebar" onclick="importJSON()" title="Importer une sauvegarde JSON">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importer sauvegarde
+      </button>
+      <button class="btn-logout-sidebar" onclick="logout()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- Overlay pour fermer le menu mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+  <div class="admin-main">
+    <!-- Barre de statut Firebase visible uniquement mobile -->
+    <div class="mob-status-bar" id="mob-status-bar">
+      <span>GHITA 1</span>
+      <div style="display:flex;gap:6px;">
+        <span id="fb-status-mob" style="font-size:10px;padding:3px 8px;border-radius:20px;background:#fef3e2;color:#b5650d;font-weight:500;">⚡</span>
+        <span id="ls-status-mob" style="font-size:10px;padding:3px 8px;border-radius:20px;background:var(--green-bg);color:var(--green);font-weight:500;">💾</span>
+      </div>
+    </div>
+    <div class="topbar">
+      <!-- Hamburger menu mobile -->
+      <button class="mob-menu-btn" onclick="toggleMobileSidebar()" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="topbar-title" id="admin-page-title">Tableau de bord</div>
+      <div id="fb-status" style="font-size:11px;padding:4px 10px;border-radius:20px;background:#fef3e2;color:#b5650d;font-weight:500;cursor:pointer;" onclick="openSettingsModal()" title="Cliquer pour configurer">⚡ Non connecté</div>
+      <div id="ls-status" style="font-size:11px;padding:4px 10px;border-radius:20px;background:var(--green-bg);color:var(--green);font-weight:500;cursor:pointer;" onclick="exportJSON()" title="Cliquer pour exporter">💾 Local</div>
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Rechercher un résident..." oninput="quickSearch(this.value)">
+      </div>
+      <button class="btn primary sm" onclick="openModal('addRes')">+ Nouveau résident</button>
+    </div>
+    <div class="admin-content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="adm-dashboard">
+        <div class="stats-grid" id="dash-stats"></div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
+          <div class="card">
+            <div class="card-hd"><div class="card-title">Recouvrement mensuel 2025</div></div>
+            <div id="dash-barchart" style="display:flex;align-items:flex-end;gap:6px;height:110px;padding-top:8px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><div class="card-title">Top arriérés</div></div>
+            <div id="dash-top-arrears"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <div class="card-hd">
+            <div class="card-title">Derniers paiements</div>
+            <button class="btn sm" onclick="navAdmin('paiements', document.querySelectorAll('.nav-item')[3])">Voir tout</button>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>Résident</th><th>Appt</th><th>Montant</th><th>Mois</th><th>Date</th><th>Mode</th></tr></thead><tbody id="dash-payments"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- RESIDENTS -->
+      <div class="page" id="adm-residents">
+        <div class="filters">
+          <input type="text" placeholder="Nom, appartement..." id="rf-search" oninput="renderResTable()">
+          <select id="rf-status" onchange="renderResTable()">
+            <option value="">Tous les statuts</option>
+            <option value="ok">À jour</option>
+            <option value="retard">En retard</option>
+          </select>
+          <select id="rf-bat" onchange="renderResTable()">
+            <option value="">Tous les bâtiments</option>
+            <option>A</option><option>B</option><option>C</option>
+          </select>
+          <span style="font-size:12px;color:var(--gray);" id="rf-count"></span>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="btn sm" onclick="exportCSV()">📥 CSV</button>
+            <button class="btn primary sm" onclick="openModal('addRes')">+ Ajouter</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Résident</th><th>Appt</th><th>Bât.</th><th>Téléphone</th><th>Code PIN</th><th>Cotis./mois</th><th>Payé</th><th>Solde dû</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="res-table-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARRIERES -->
+      <div class="page" id="adm-arrieres">
+        <div class="alert red" id="arrears-alert"></div>
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:1rem;margin-bottom:1rem;align-items:start;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="arr-sort" onchange="renderArrieres()">
+              <option value="amount">Trier : montant dû</option>
+              <option value="months">Trier : mois de retard</option>
+            </select>
+            <button class="btn danger sm" onclick="alert('En production : génération PDF de toutes les relances.')">🖨 Toutes les relances</button>
+          </div>
+          <!-- Formulaire saisie d'arriéré -->
+          <div class="card" style="margin:0;padding:1rem;">
+            <div class="card-title" style="margin-bottom:10px;">⚠ Saisir un arriéré</div>
+            <div class="fg">
+              <label>Résident *</label>
+              <select id="arr-res-sel" style="padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--navy);" onchange="onArrResSel()"></select>
+            </div>
+
+            <!-- Mode de saisie : auto ou manuel -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+              <button id="arr-mode-auto" class="btn primary sm" onclick="setArrMode('auto')" style="font-size:12px;">📅 Depuis une date</button>
+              <button id="arr-mode-manuel" class="btn sm" onclick="setArrMode('manuel')" style="font-size:12px;">✏ Montant manuel</button>
+            </div>
+
+            <!-- MODE AUTO : date de début -->
+            <div id="arr-section-auto">
+              <div class="fg">
+                <label>Date de début des impayés *</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                  <button class="btn sm" onclick="arrNavYear(-1)" title="Année précédente" style="padding:6px 10px;">«</button>
+                  <button class="btn sm" onclick="arrNavMonth(-1)" title="Mois précédent" style="padding:6px 10px;">‹</button>
+                  <div id="arr-date-label" style="flex:1;text-align:center;font-weight:600;font-size:13px;color:var(--navy);background:var(--gray-bg);padding:7px;border-radius:6px;border:1px solid var(--border);">— Sélectionner —</div>
+                  <button class="btn sm" onclick="arrNavMonth(1)" title="Mois suivant" style="padding:6px 10px;">›</button>
+                  <button class="btn sm" onclick="arrNavYear(1)" title="Année suivante" style="padding:6px 10px;">»</button>
+                </div>
+                <input type="hidden" id="arr-date-debut">
+              </div>
+              <div class="fg">
+                <label>Cotisation DH/mois</label>
+                <input type="number" id="arr-cotis" style="padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--navy);width:100%;" placeholder="120" oninput="previewArriere()">
+              </div>
+              <!-- Aperçu calcul -->
+              <div id="arr-preview" style="display:none;background:var(--red-bg);border:1px solid #f5c6c2;border-radius:6px;padding:10px 12px;font-size:12px;color:var(--red);margin-bottom:10px;line-height:1.6;"></div>
+            </div>
+
+            <!-- MODE MANUEL : montant libre -->
+            <div id="arr-section-manuel" style="display:none;">
+              <div class="fg">
+                <label>Montant total dû (DH) *</label>
+                <input type="number" id="arr-montant-manuel" style="padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--navy);width:100%;" placeholder="Ex : 1440">
+              </div>
+              <div class="fg">
+                <label>Nombre de mois concernés *</label>
+                <input type="number" id="arr-mois-manuel" style="padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--navy);width:100%;" placeholder="Ex : 12" min="1">
+              </div>
+              <div class="fg">
+                <label>Date de début (indication)</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                  <button class="btn sm" onclick="arrManNavYear(-1)" style="padding:6px 10px;">«</button>
+                  <button class="btn sm" onclick="arrManNavMonth(-1)" style="padding:6px 10px;">‹</button>
+                  <div id="arr-date-label-manuel" style="flex:1;text-align:center;font-weight:600;font-size:13px;color:var(--navy);background:var(--gray-bg);padding:7px;border-radius:6px;border:1px solid var(--border);">— Optionnel —</div>
+                  <button class="btn sm" onclick="arrManNavMonth(1)" style="padding:6px 10px;">›</button>
+                  <button class="btn sm" onclick="arrManNavYear(1)" style="padding:6px 10px;">»</button>
+                </div>
+                <input type="hidden" id="arr-date-debut-manuel">
+              </div>
+            </div>
+
+            <button class="btn primary" style="width:100%;font-size:12px;" onclick="saveArriere()">✓ Enregistrer l'arriéré</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Résident</th><th>Appt</th><th>Téléphone</th><th>Depuis</th><th>Mois impayés</th><th>Montant dû</th><th>Priorité</th><th>Actions</th></tr></thead>
+            <tbody id="arr-table-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAIEMENTS -->
+      <div class="page" id="adm-paiements">
+        <div class="filters">
+          <select id="pf-month" onchange="renderPayTable()">
+            <option value="">Tous les mois</option>
+            <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+            <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+          </select>
+          <select id="pf-bat" onchange="renderPayTable()">
+            <option value="">Tous bâtiments</option>
+            <option>A</option><option>B</option><option>C</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Résident</th><th>Appt</th><th>Mois réglé</th><th>Montant</th><th>Mode</th><th>Date</th></tr></thead>
+            <tbody id="pay-table-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPTABILITÉ -->
+      <div class="page" id="adm-compta">
+        <!-- Stats résumé -->
+        <div class="stats-grid" id="compta-stats" style="margin-bottom:1.25rem;"></div>
+
+        <!-- 3 caisses -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
+          <!-- CAISSE ESPÈCES -->
+          <div class="card" style="border-top:4px solid var(--green);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="font-size:20px;">💵</span>
+              <div class="card-title">Caisse Espèces</div>
+            </div>
+            <div id="caisse-especes-val" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);">0 DH</div>
+            <div id="caisse-especes-hint" style="font-size:11px;color:var(--gray);margin-top:2px;"></div>
+          </div>
+          <!-- CAISSE BANQUE (virements + chèques) -->
+          <div class="card" style="border-top:4px solid var(--navy);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="font-size:20px;">🏦</span>
+              <div class="card-title">Caisse Banque</div>
+            </div>
+            <div id="caisse-banque-val" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--navy);">0 DH</div>
+            <div id="caisse-banque-hint" style="font-size:11px;color:var(--gray);margin-top:2px;"></div>
+          </div>
+          <!-- SOLDE GLOBAL -->
+          <div class="card" style="border-top:4px solid var(--gold);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="font-size:20px;">📊</span>
+              <div class="card-title">Solde Global</div>
+            </div>
+            <div id="caisse-solde-val" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);">0 DH</div>
+            <div id="caisse-solde-hint" style="font-size:11px;color:var(--gray);margin-top:2px;"></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <!-- Formulaire dépense -->
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title">📋 Ajouter une dépense</div>
+            </div>
+            <div class="fg">
+              <label>Catégorie</label>
+              <select id="dep-cat">
+                <option value="electricite">⚡ Électricité</option>
+                <option value="gardien">👮 Gardien</option>
+                <option value="jardinier">🌿 Jardinier</option>
+                <option value="reparations">🔧 Réparations</option>
+                <option value="divers">📦 Divers</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Description</label>
+              <input type="text" id="dep-desc" placeholder="Ex: Facture ONEE Mars 2025">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="fg">
+                <label>Montant (DH)</label>
+                <input type="number" id="dep-montant" placeholder="0" min="0">
+              </div>
+              <div class="fg">
+                <label>Date</label>
+                <input type="date" id="dep-date">
+              </div>
+            </div>
+            <!-- Caisse source -->
+            <div class="fg">
+              <label>Retirer de</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <label id="dep-src-especes-lbl" style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;background:var(--green-bg);">
+                  <input type="radio" name="dep-src" id="dep-src-especes" value="especes" checked style="accent-color:var(--green);">
+                  <span style="font-size:13px;font-weight:500;color:var(--green);">💵 Espèces</span>
+                </label>
+                <label id="dep-src-banque-lbl" style="display:flex;align-items:center;gap:6px;padding:8px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;">
+                  <input type="radio" name="dep-src" id="dep-src-banque" value="banque" style="accent-color:var(--navy);">
+                  <span style="font-size:13px;font-weight:500;color:var(--gray);">🏦 Banque</span>
+                </label>
+              </div>
+            </div>
+            <button class="btn primary" style="width:100%;" onclick="addDepense()">+ Enregistrer la dépense</button>
+          </div>
+
+          <!-- Bilan -->
+          <div class="card" id="compta-solde-card" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card-title">💰 Bilan financier</div>
+            <div id="compta-bilan"></div>
+          </div>
+        </div>
+
+        <!-- Tableau dépenses -->
+        <div class="card" style="margin-top:1rem;padding:0;overflow:hidden;">
+          <div class="card-hd" style="padding:1rem 1.25rem 0;">
+            <div class="card-title">Historique des dépenses</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="dep-filter-cat" onchange="renderDepenses()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;">
+                <option value="">Toutes catégories</option>
+                <option value="electricite">⚡ Électricité</option>
+                <option value="gardien">👮 Gardien</option>
+                <option value="jardinier">🌿 Jardinier</option>
+                <option value="reparations">🔧 Réparations</option>
+                <option value="divers">📦 Divers</option>
+              </select>
+              <select id="dep-filter-src" onchange="renderDepenses()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;">
+                <option value="">Toutes caisses</option>
+                <option value="especes">💵 Espèces</option>
+                <option value="banque">🏦 Banque</option>
+              </select>
+              <button class="btn sm" onclick="printCompta()">🖨 Imprimer</button>
+            </div>
+          </div>
+          <div class="tbl-wrap" style="margin-top:1rem;">
+            <table>
+              <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Caisse</th><th>Montant</th><th>Actions</th></tr></thead>
+              <tbody id="dep-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- FICHES -->
+      <div class="page" id="adm-fiches">
+        <div style="display:grid;grid-template-columns:260px 1fr;gap:1rem;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:1rem;">Paramètres</div>
+            <div class="fg"><label>Résident</label>
+              <select id="fiche-res-sel" onchange="updateFichePreview()"><option value="">Sélectionner...</option></select>
+            </div>
+            <div class="fg"><label>Type de document</label>
+              <select id="fiche-type-sel" onchange="updateFichePreview()">
+                <option value="relance">Avis de relance</option>
+                <option value="releve">Relevé de compte</option>
+                <option value="quittance">Quittance</option>
+                <option value="demeure">Mise en demeure</option>
+              </select>
+            </div>
+            <button class="btn primary" style="width:100%;margin-top:8px;" onclick="window.print()">🖨 Imprimer</button>
+          </div>
+          <div class="print-sheet" id="fiche-preview-box">
+            <div style="text-align:center;padding:3rem;color:var(--gray);">Sélectionnez un résident pour prévisualiser.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CODES PIN -->
+      <div class="page" id="adm-codes">
+        <div class="alert amber" style="margin-bottom:1.25rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Les codes PIN sont à <strong>remettre physiquement</strong> à chaque résident. Ne les envoyez pas par message non sécurisé.</span>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="tbl-wrap">
+            <table class="codes-table">
+              <thead><tr><th>Résident</th><th>Appartement</th><th>Code PIN</th><th>Statut accès</th><th>Actions</th></tr></thead>
+              <tbody id="codes-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- RAPPORT GLOBAL -->
+      <div class="page" id="adm-rapport">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;">
+          <select id="rp-bat" onchange="renderRapport()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--navy);">
+            <option value="">Tous les bâtiments</option>
+            <option>A</option><option>B</option><option>C</option>
+          </select>
+          <select id="rp-statut" onchange="renderRapport()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--navy);">
+            <option value="">Tous les statuts</option>
+            <option value="ok">À jour uniquement</option>
+            <option value="retard">En retard uniquement</option>
+          </select>
+          <button class="btn danger sm" onclick="printRapport()">🖨 Imprimer ce rapport</button>
+          <span style="font-size:12px;color:var(--gray);margin-left:auto;" id="rp-count"></span>
+        </div>
+        <div id="rapport-content"></div>
+        <div id="rapport-print-area" style="display:none;"></div>
+      </div>
+
+    </div><!-- /admin-content -->
+  </div><!-- /admin-main -->
+</div>
+
+<!-- ══════════════════════════════════
+     SCREEN 3 : PORTAIL RÉSIDENT
+══════════════════════════════════ -->
+<div class="screen" id="screen-portal">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo" id="portal-topbar-res">GHITA 1 · Résidence Al Andalus</div>
+    <button class="btn-portal-logout" onclick="logout()">← Déconnexion</button>
+  </div>
+  <div class="portal-body">
+    <div class="portal-hero" id="portal-hero"></div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:1rem;">Historique des cotisations 2025</div>
+      <div class="month-grid" id="portal-month-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Récapitulatif</div></div>
+      <div class="recap-grid" id="portal-recap"></div>
+    </div>
+    <div style="text-align:center;margin-top:1rem;">
+      <button class="btn primary" onclick="printPortalFiche()">🖨 Imprimer mon relevé</button>
+    </div>
+    <div class="print-sheet" id="portal-print-fiche" style="display:none;margin-top:2rem;"></div>
+  </div>
+</div>
+
+<!-- MODAL: Ajouter résident -->
+<div class="overlay" id="modal-addRes">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Nouveau résident</div>
+      <button class="modal-x" onclick="closeModal('addRes')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Prénom *</label><input type="text" id="nr-prenom" placeholder="Ahmed"></div>
+      <div class="fg"><label>Nom *</label><input type="text" id="nr-nom" placeholder="Benali"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Bâtiment *</label>
+        <select id="nr-bat"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+      </div>
+      <div class="fg"><label>N° Appartement *</label><input type="text" id="nr-appt" placeholder="14"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Téléphone</label><input type="text" id="nr-tel" placeholder="06 XX XX XX XX"></div>
+      <div class="fg"><label>Cotisation (DH/mois)</label><input type="number" id="nr-cotis" value="120"></div>
+    </div>
+    <div class="fg">
+      <label>Date de début des arriérés *</label>
+      <input type="month" id="nr-date-debut" placeholder="AAAA-MM">
+      <span style="font-size:11px;color:var(--gray);">Le mois à partir duquel les impayés commencent (ex : 2024-01). Les mois non payés seront calculés automatiquement.</span>
+    </div>
+    <div class="fg" style="margin-bottom:0;">
+      <label>Code PIN résident (4 chiffres) *</label>
+      <input type="text" id="nr-pin" maxlength="4" placeholder="Ex : 7823" inputmode="numeric">
+      <span style="font-size:11px;color:var(--gray);">Ce code sera remis au résident pour accéder à son espace.</span>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('addRes')">Annuler</button>
+      <button class="btn primary" onclick="addResident()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Paiement rapide -->
+<div class="overlay" id="modal-pay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hd">
+      <div class="modal-title">Enregistrer un paiement</div>
+      <button class="modal-x" onclick="closeModal('pay')">✕</button>
+    </div>
+    <div id="pay-modal-info" style="background:var(--gray-bg);border-radius:8px;padding:12px;margin-bottom:1rem;font-size:13px;line-height:1.6;"></div>
+
+    <!-- Sélecteur mois/année navigable -->
+    <div class="fg">
+      <label>Mois réglé</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn sm" onclick="payNavYear(-1)" title="Année précédente" style="padding:6px 10px;">«</button>
+        <button class="btn sm" onclick="payNavMonth(-1)" title="Mois précédent" style="padding:6px 10px;">‹</button>
+        <div id="qp-month-label" style="flex:1;text-align:center;font-weight:600;font-size:14px;color:var(--navy);background:var(--gray-bg);padding:8px;border-radius:6px;border:1px solid var(--border);"></div>
+        <button class="btn sm" onclick="payNavMonth(1)" title="Mois suivant" style="padding:6px 10px;">›</button>
+        <button class="btn sm" onclick="payNavYear(1)" title="Année suivante" style="padding:6px 10px;">»</button>
+      </div>
+      <input type="hidden" id="qp-month">
+      <input type="hidden" id="qp-year">
+    </div>
+
+    <div class="form-row">
+      <div class="fg"><label>Montant (DH)</label>
+        <input type="number" id="qp-amount" value="120" oninput="updatePayPreview()">
+      </div>
+      <div class="fg"><label>Mode de paiement</label>
+        <select id="qp-mode"><option>Espèces</option><option>Virement</option><option>Chèque</option></select>
+      </div>
+    </div>
+
+    <!-- Aperçu solde après paiement -->
+    <div id="pay-preview" style="border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:4px;line-height:1.7;display:none;"></div>
+
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('pay')">Annuler</button>
+      <button class="btn primary" onclick="confirmPay()">✓ Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Voir/modifier code PIN -->
+<div class="overlay" id="modal-pin">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-hd">
+      <div class="modal-title">Code PIN résident</div>
+      <button class="modal-x" onclick="closeModal('pin')">✕</button>
+    </div>
+    <div id="pin-modal-info" style="font-size:13px;color:var(--gray);margin-bottom:1rem;"></div>
+    <div class="code-box" id="pin-modal-code"></div>
+    <div class="fg" style="margin-top:1rem;">
+      <label>Nouveau code PIN (optionnel)</label>
+      <input type="text" id="pin-new-val" maxlength="4" placeholder="4 chiffres" inputmode="numeric">
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('pin')">Fermer</button>
+      <button class="btn primary" onclick="updatePin()">Mettre à jour</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function pad2(n){ return (n < 10 ? "0" : "") + n; }
+
+// ═══════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════
+var CONFIG = {
+  residence: 'Al Andalus',
+  adminNom: 'Mohamed Rachidi',
+  adminLogin: 'syndic',
+  adminPass: '1234',
+  ville: 'Casablanca',
+  immeubles: ['A','B','C'],
+  cotisationMensuelle: 120
+};
+
+// ═══════════════════════════════════
+//  CONSTANTES
+// ═══════════════════════════════════
+var MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+var MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var AV_COLORS = ['#1e7c4f','#0f1f3d','#b5650d','#c0392b','#1d4ed8','#7c3aed','#0e7490','#be185d'];
+var NOMS = ['Alami','Benali','Cherkaoui','Drissi','El Fassi','Filali','Guessous','Hajji','Idrissi','Jamai','Khatib','Lahlou','Mansouri','Naji','Ouali','Rachidi','Saidi','Tahiri','Ziani','Zaki'];
+var PRENOMS = ['Mohamed','Ahmed','Fatima','Youssef','Aicha','Karim','Nadia','Hassan','Sara','Omar','Leila','Rachid','Mina','Khalid','Amina','Soufiane','Hind','Mehdi','Zineb','Tarik'];
+var LS_FB_KEY = 'syndicpro_firebase_config';
+var LS_KEY    = 'syndicpro_data';
+
+// ═══════════════════════════════════
+//  ÉTAT GLOBAL
+// ═══════════════════════════════════
+var residents = [];
+var payments  = [];
+var depenses  = [];
+var nextId    = 1;
+var nextDepId = 10;
+var currentPayRes = null;
+var currentPinRes = null;
+var loggedPortalRes = null;
+
+// ═══════════════════════════════════
+//  FIREBASE
+// ═══════════════════════════════════
+var db = null;
+var _unsub = [];  // listeners onSnapshot à détacher
+
+// ═══════════════════════════════════
+//  FIREBASE STATUS & CONFIG
+// ═══════════════════════════════════
+
+// Clé pour marquer les modifications faites hors-ligne
+var LS_PENDING_KEY = 'syndicpro_pending_sync';
+
+function setFbStatus(state) {
+  var el = document.getElementById('fb-status');
+  if (!el) return;
+  if (state === 'connected') {
+    el.textContent = '🔥 Firestore';
+    el.style.background = 'var(--green-bg)';
+    el.style.color = 'var(--green)';
+  } else if (state === 'loading') {
+    el.textContent = '🔥 Connexion…';
+    el.style.background = '#eff6ff';
+    el.style.color = '#1d4ed8';
+  } else if (state === 'offline') {
+    el.textContent = '📴 Hors-ligne';
+    el.style.background = 'var(--amber-bg)';
+    el.style.color = 'var(--amber)';
+  } else {
+    el.textContent = '⚡ Mode local';
+    el.style.background = 'var(--amber-bg)';
+    el.style.color = 'var(--amber)';
+  }
+}
+
+function saveFbConfig(cfg) {
+  localStorage.setItem(LS_FB_KEY, JSON.stringify(cfg));
+}
+
+function loadFbConfig() {
+  try {
+    var raw = localStorage.getItem(LS_FB_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════
+//  FILE D'ATTENTE OFFLINE → FIRESTORE
+// ═══════════════════════════════════
+// Chaque modification hors-ligne est enregistrée dans une file d'attente.
+// Dès que Firestore est disponible, on rejoue toutes les opérations en attente.
+
+function loadPendingQueue() {
+  try {
+    var raw = localStorage.getItem(LS_PENDING_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function savePendingQueue(queue) {
+  try {
+    localStorage.setItem(LS_PENDING_KEY, JSON.stringify(queue));
+  } catch(e) {}
+}
+
+// Ajoute une opération à la file d'attente hors-ligne
+function enqueuePending(op) {
+  // op = { type: 'addResident'|'updateResident'|'deleteResident'|
+  //               'addPayment'|'deletePaymentsByResident'|
+  //               'addDepense'|'deleteDepense'|'setConfig',
+  //        payload: {...} }
+  var queue = loadPendingQueue();
+  queue.push(op);
+  savePendingQueue(queue);
+}
+
+// Rejoue toutes les opérations en attente sur Firestore, puis vide la file
+function flushPendingQueue() {
+  if (!db) return;
+  var queue = loadPendingQueue();
+  if (!queue.length) return;
+
+  console.log('[SyndicPro] Synchronisation de', queue.length, 'opération(s) hors-ligne…');
+  showToast('🔄 Synchronisation de ' + queue.length + ' opération(s) hors-ligne…', 'green');
+
+  var promises = queue.map(function(op) {
+    try {
+      switch(op.type) {
+        case 'addResident': {
+          var data = Object.assign({}, op.payload); delete data._fsId;
+          return db.collection('residents').add(data);
+        }
+        case 'updateResident': {
+          if (!op.payload._fsId) return Promise.resolve();
+          var data = Object.assign({}, op.payload); delete data._fsId;
+          return db.collection('residents').doc(op.payload._fsId).set(data, { merge: true });
+        }
+        case 'deleteResident': {
+          if (!op.payload._fsId) return Promise.resolve();
+          return db.collection('residents').doc(op.payload._fsId).delete();
+        }
+        case 'addPayment': {
+          var data = Object.assign({}, op.payload); delete data._fsId;
+          return db.collection('payments').add(data);
+        }
+        case 'deletePaymentsByResident': {
+          return db.collection('payments').where('resId','==',op.payload.resId).get().then(function(snap){
+            var batch = db.batch();
+            snap.docs.forEach(function(doc){ batch.delete(doc.ref); });
+            return batch.commit();
+          });
+        }
+        case 'addDepense': {
+          var data = Object.assign({}, op.payload); delete data._fsId;
+          return db.collection('depenses').add(data);
+        }
+        case 'deleteDepense': {
+          if (!op.payload._fsId) return Promise.resolve();
+          return db.collection('depenses').doc(op.payload._fsId).delete();
+        }
+        case 'setConfig': {
+          return db.collection('config').doc('main').set(op.payload, { merge: true });
+        }
+        default:
+          return Promise.resolve();
+      }
+    } catch(e) {
+      console.warn('[SyndicPro] Erreur flush op:', op, e);
+      return Promise.resolve();
+    }
+  });
+
+  Promise.all(promises).then(function() {
+    savePendingQueue([]);
+    localStorage.removeItem(LS_KEY); // données locales obsolètes après sync
+    console.log('[SyndicPro] Synchronisation terminée.');
+    showToast('✅ Données synchronisées avec Firestore !', 'green');
+    updateLsBadge();
+  }).catch(function(e) {
+    console.warn('[SyndicPro] Erreur lors de la synchronisation:', e);
+  });
+}
+
+// ═══════════════════════════════════
+//  INITIALISATION FIREBASE
+// ═══════════════════════════════════
+
+function _realInitFirebase(cfg) {
+  if (!cfg) {
+    cfg = {
+      apiKey:            document.getElementById('fb-apiKey').value.trim(),
+      authDomain:        document.getElementById('fb-authDomain').value.trim(),
+      projectId:         document.getElementById('fb-projectId').value.trim(),
+      storageBucket:     document.getElementById('fb-storageBucket').value.trim(),
+      messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
+      appId:             document.getElementById('fb-appId').value.trim()
+    };
+  }
+
+  var errEl = document.getElementById('cfg-fb-err') || document.getElementById('setup-error');
+  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId) {
+    if (errEl) { errEl.textContent = '⚠ API Key, Auth Domain et Project ID sont obligatoires.'; errEl.style.display='block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(cfg);
+    }
+    db = firebase.firestore();
+
+    // Activer la persistance offline native de Firestore
+    db.enablePersistence({ synchronizeTabs: true }).catch(function(e) {
+      console.warn('[SyndicPro] Persistance Firestore non disponible:', e.code);
+    });
+
+    saveFbConfig(cfg);
+    setFbStatus('loading');
+    showScreen('login');
+    startFirestoreListeners();
+    showToast('🔥 Firebase connecté !', 'green');
+  } catch(e) {
+    var errEl2 = document.getElementById('cfg-fb-err') || document.getElementById('setup-error');
+    if (errEl2) { errEl2.textContent = '❌ Erreur Firebase : ' + e.message; errEl2.style.display='block'; }
+    showToast('❌ Erreur Firebase : ' + e.message, 'red');
+  }
+}
+
+// ═══════════════════════════════════
+//  LISTENERS FIRESTORE TEMPS RÉEL
+// ═══════════════════════════════════
+
+function startFirestoreListeners() {
+  _unsub.forEach(function(u){ try{ u(); }catch(e){} });
+  _unsub = [];
+
+  // ── CONFIG ──
+  _unsub.push(
+    db.collection('config').doc('main').onSnapshot(function(snap) {
+      if (snap.exists) {
+        var d = snap.data();
+        CONFIG.residence  = d.residence  || CONFIG.residence;
+        CONFIG.adminNom   = d.adminNom   || CONFIG.adminNom;
+        CONFIG.adminLogin = d.adminLogin || CONFIG.adminLogin;
+        CONFIG.adminPass  = d.adminPass  || CONFIG.adminPass;
+        CONFIG.ville      = d.ville      || CONFIG.ville;
+        if (d.immeubles) CONFIG.immeubles = d.immeubles;
+        if (d.cotisationMensuelle) CONFIG.cotisationMensuelle = d.cotisationMensuelle;
+        applyConfig();
+      } else {
+        fsSetConfig(CONFIG);
+      }
+    }, function(e){ console.warn('Config listener error:', e); })
+  );
+
+  // ── RESIDENTS ──
+  _unsub.push(
+    db.collection('residents').onSnapshot(function(snap) {
+      residents = snap.docs.map(function(doc) {
+        var d = doc.data(); d._fsId = doc.id; return d;
+      });
+      var maxId = residents.reduce(function(m,r){ return Math.max(m, r.id||0); }, 0);
+      nextId = maxId + 1;
+      if (document.getElementById('screen-admin').classList.contains('active')) {
+        initDashboard();
+        var activePage = document.querySelector('#screen-admin .page.active');
+        if (activePage) {
+          var pid = activePage.id.replace('adm-','');
+          if (pid==='residents') renderResTable();
+          if (pid==='arrieres') renderArrieres();
+          if (pid==='codes') renderCodesTable();
+          if (pid==='fiches') populateFicheSelect();
+          if (pid==='rapport') renderRapport();
+        }
+      }
+      setFbStatus('connected');
+      updateLsBadge();
+      // Synchroniser la file hors-ligne dès que Firestore répond
+      flushPendingQueue();
+    }, function(e){ console.warn('Residents listener error:', e); setFbStatus('offline'); })
+  );
+
+  // ── PAYMENTS ──
+  _unsub.push(
+    db.collection('payments').onSnapshot(function(snap) {
+      payments = snap.docs.map(function(doc) {
+        var d = doc.data(); d._fsId = doc.id; return d;
+      });
+      if (document.getElementById('screen-admin').classList.contains('active')) {
+        initDashboard();
+        var activePage = document.querySelector('#screen-admin .page.active');
+        if (activePage && activePage.id==='adm-paiements') renderPayTable();
+        if (activePage && activePage.id==='adm-compta') renderCompta();
+      }
+    }, function(e){ console.warn('Payments listener error:', e); })
+  );
+
+  // ── DEPENSES ──
+  _unsub.push(
+    db.collection('depenses').onSnapshot(function(snap) {
+      depenses = snap.docs.map(function(doc) {
+        var d = doc.data(); d._fsId = doc.id; return d;
+      });
+      var maxDep = depenses.reduce(function(m,d){ return Math.max(m, d.id||0); }, 0);
+      nextDepId = maxDep + 1;
+      if (document.getElementById('screen-admin').classList.contains('active')) {
+        var activePage = document.querySelector('#screen-admin .page.active');
+        if (activePage && activePage.id==='adm-compta') renderCompta();
+      }
+    }, function(e){ console.warn('Depenses listener error:', e); })
+  );
+}
+
+// ═══════════════════════════════════
+//  HELPERS FIRESTORE (avec fallback offline)
+// ═══════════════════════════════════
+
+function fsSetConfig(cfg) {
+  var payload = {
+    residence:  cfg.residence,
+    adminNom:   cfg.adminNom,
+    adminLogin: cfg.adminLogin,
+    adminPass:  cfg.adminPass,
+    ville:      cfg.ville,
+    immeubles:  cfg.immeubles || [],
+    cotisationMensuelle: cfg.cotisationMensuelle || 120
+  };
+  if (!db) {
+    enqueuePending({ type: 'setConfig', payload: payload });
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  return db.collection('config').doc('main').set(payload, { merge: true });
+}
+
+function fsAddResident(r) {
+  var data = Object.assign({}, r); delete data._fsId;
+  if (!db) {
+    enqueuePending({ type: 'addResident', payload: data });
+    residents.push(r);
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  return db.collection('residents').add(data);
+}
+
+function fsUpdateResident(r) {
+  var data = Object.assign({}, r); delete data._fsId;
+  if (!db) {
+    enqueuePending({ type: 'updateResident', payload: r });
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  if (!r._fsId) { console.warn('fsUpdateResident: pas de _fsId'); return Promise.resolve(); }
+  return db.collection('residents').doc(r._fsId).set(data, { merge: true });
+}
+
+function fsDeleteResident(r) {
+  if (!db) {
+    enqueuePending({ type: 'deleteResident', payload: r });
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  if (!r._fsId) return Promise.resolve();
+  return db.collection('residents').doc(r._fsId).delete();
+}
+
+function fsAddPayment(p) {
+  var data = Object.assign({}, p); delete data._fsId;
+  if (!db) {
+    enqueuePending({ type: 'addPayment', payload: data });
+    payments.push(p);
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  return db.collection('payments').add(data);
+}
+
+function fsDeletePaymentsByResident(resId) {
+  if (!db) {
+    enqueuePending({ type: 'deletePaymentsByResident', payload: { resId: resId } });
+    payments = payments.filter(function(p){ return p.resId !== resId; });
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  return db.collection('payments').where('resId','==',resId).get().then(function(snap){
+    var batch = db.batch();
+    snap.docs.forEach(function(doc){ batch.delete(doc.ref); });
+    return batch.commit();
+  });
+}
+
+function fsAddDepense(d) {
+  var data = Object.assign({}, d); delete data._fsId;
+  if (!db) {
+    enqueuePending({ type: 'addDepense', payload: data });
+    depenses.push(d);
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  return db.collection('depenses').add(data);
+}
+
+function fsDeleteDepense(d) {
+  if (!db) {
+    enqueuePending({ type: 'deleteDepense', payload: d });
+    depenses = depenses.filter(function(x){ return x.id !== d.id; });
+    saveLocalFallback();
+    return Promise.resolve();
+  }
+  if (!d._fsId) return Promise.resolve();
+  return db.collection('depenses').doc(d._fsId).delete();
+}
+
+// ═══════════════════════════════════
+//  SAUVEGARDE LOCALE (fallback offline)
+// ═══════════════════════════════════
+
+// saveToLocalStorage = alias de saveLocalFallback (compatibilité)
+function saveToLocalStorage() { saveLocalFallback(); }
+
+function saveLocalFallback() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      residents: residents, payments: payments, depenses: depenses,
+      nextId: nextId, nextDepId: nextDepId, config: CONFIG,
+      savedAt: new Date().toISOString()
+    }));
+    updateLsBadge();
+  } catch(e) {}
+}
+
+function loadLocalFallback() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    var data = JSON.parse(raw);
+    if (!data.residents) return false;
+    residents  = data.residents;
+    payments   = data.payments  || [];
+    depenses   = data.depenses  || [];
+    nextId     = data.nextId    || residents.length + 1;
+    nextDepId  = data.nextDepId || 10;
+    if (data.config) {
+      Object.assign(CONFIG, data.config);
+      if (data.config.immeubles) CONFIG.immeubles = data.config.immeubles;
+      if (data.config.cotisationMensuelle) CONFIG.cotisationMensuelle = data.config.cotisationMensuelle;
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+function updateLsBadge() {
+  var badge = document.getElementById('ls-status');
+  if (!badge) return;
+  var pending = loadPendingQueue();
+  if (db) {
+    if (pending.length > 0) {
+      badge.textContent = '⏳ ' + pending.length + ' en attente';
+      badge.style.background = 'var(--amber-bg)';
+      badge.style.color = 'var(--amber)';
+    } else {
+      badge.textContent = '✅ Sync Firestore';
+      badge.style.background = 'var(--green-bg)';
+      badge.style.color = 'var(--green)';
+    }
+  } else {
+    var count = pending.length;
+    var now = new Date();
+    var hm = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+    badge.textContent = count > 0
+      ? '📴 Hors-ligne · ' + count + ' modif.'
+      : '📴 Hors-ligne · ' + hm;
+    badge.style.background = 'var(--amber-bg)';
+    badge.style.color = 'var(--amber)';
+  }
+}
+
+// Surveillance réseau : tenter de reconnecter dès que le navigateur revient online
+window.addEventListener('online', function() {
+  if (!db) return;
+  showToast('🌐 Connexion rétablie — synchronisation en cours…', 'green');
+  flushPendingQueue();
+});
+
+window.addEventListener('offline', function() {
+  setFbStatus('offline');
+  showToast('📴 Connexion perdue — mode hors-ligne activé.', 'red');
+  updateLsBadge();
+});
+
+// ═══════════════════════════════════
+//  DÉMARRAGE
+// ═══════════════════════════════════
+
+(function boot() {
+  // Neutraliser le proxy — la vraie fonction est maintenant définie
+  initFirebase = _realInitFirebase;
+  showScreen   = _realShowScreen;
+
+  var fbCfg = loadFbConfig();
+  if (fbCfg && fbCfg.apiKey && fbCfg.projectId) {
+    // Pré-remplir les champs Firebase dans les paramètres
+    ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(function(k){
+      var el = document.getElementById('fb-'+k);
+      if (el && fbCfg[k]) el.value = fbCfg[k];
+    });
+    loadLocalFallback();
+    // Connexion silencieuse → login direct
+    initFirebase(fbCfg);
+  } else {
+    // Pas de config Firebase : démarrer en mode local et aller au login
+    loadLocalFallback();
+    showScreen('login');
+  }
+})();
+
+// ═══════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════
+function switchLoginTab(tab) {
+  document.getElementById('login-admin-form').style.display = tab==='admin' ? 'block' : 'none';
+  document.getElementById('login-resident-form').style.display = tab==='resident' ? 'block' : 'none';
+  document.getElementById('tab-btn-admin').classList.toggle('active', tab==='admin');
+  document.getElementById('tab-btn-resident').classList.toggle('active', tab==='resident');
+  if (tab==='resident') populateResApptSelect();
+}
+
+function populateResApptSelect() {
+  var sel = document.getElementById('res-appt-sel');
+  sel.innerHTML = '<option value="">Sélectionner votre appartement...</option>' +
+    residents.map(function(r){ return '<option value="'+r.id+'">'+r.appt+' — '+r.prenom+' '+r.nom+'</option>'; }).join('');
+}
+
+function loginAdmin() {
+  var u = document.getElementById('admin-user').value;
+  var p = document.getElementById('admin-pass').value;
+  var err = document.getElementById('admin-error');
+  if (u === CONFIG.adminLogin && p === CONFIG.adminPass) {
+    applyConfig();
+    showScreen('admin');
+    initDashboard();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function loginResident() {
+  var resId = parseInt(document.getElementById('res-appt-sel').value);
+  var pin = document.getElementById('pin-input').value.trim();
+  var err = document.getElementById('res-error');
+  var r = residents.find(function(x){ return x.id === resId; });
+  if (r && r.pin === pin && r.pinActive) {
+    loggedPortalRes = r;
+    showScreen('portal');
+    renderPortal(r);
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function logout() {
+  loggedPortalRes = null;
+  showScreen('login');
+  document.getElementById('admin-error').style.display = 'none';
+  document.getElementById('res-error').style.display = 'none';
+  document.getElementById('admin-pass').value = '';
+  document.getElementById('pin-input').value = '';
+}
+
+function _realShowScreen(name) {
+  document.querySelectorAll('.screen').forEach(function(){ ; }));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════
+//  ADMIN NAV
+// ═══════════════════════════════════
+function navAdmin(page, el) {
+  document.querySelectorAll('.page').forEach(function(){ ; }));
+  document.querySelectorAll('.nav-item').forEach(function(){ ; }));
+  document.getElementById('adm-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  var titles = {dashboard:'Tableau de bord', residents:'Résidents & Codes PIN', arrieres:'Arriérés', paiements:'Paiements', compta:'Comptabilité', fiches:'Fiches & Impressions', codes:'Gestion des codes PIN', rapport:'Rapport Global — Mois payés / impayés'};
+  document.getElementById('admin-page-title').textContent = titles[page]||'';
+  if (page==='residents') { renderResTable(); }
+  if (page==='arrieres') renderArrieres();
+  if (page==='paiements') renderPayTable();
+  if (page==='compta') renderCompta();
+  if (page==='fiches') populateFicheSelect();
+  if (page==='codes') renderCodesTable();
+  if (page==='rapport') renderRapport();
+}
+
+// ═══════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════
+function initDashboard() {
+  var total = residents.length;
+  var arrears = residents.filter(function(r){ return r.moisPayes < r.totalMois; });
+  var owedTotal = arrears.reduce(function(){ return s + (r.totalMois-r.moisPayes)*r.cotis, 0);
+  var collected = payments.reduce(function(){ return s + p.amount, 0);
+  var taux = Math.round((collected / Math.max(1, total * 6 * (CONFIG.cotisationMensuelle||120))) * 100);
+
+  document.getElementById('nb-arrears').textContent = arrears.length;
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card blue"><div class="stat-lbl">Appartements</div><div class="stat-val">${total}</div><div class="stat-hint">Résidence ${CONFIG.residence||'Al Andalus'}</div></div>
+    <div class="stat-card green"><div class="stat-lbl">Encaissé 2025</div><div class="stat-val green">${collected.toLocaleString()} DH</div><div class="stat-hint">Janv – Juin</div></div>
+    <div class="stat-card red"><div class="stat-lbl">Arriérés impayés</div><div class="stat-val red">${owedTotal.toLocaleString()} DH</div><div class="stat-hint">${arrears.length} appts concernés</div></div>
+    <div class="stat-card gold"><div class="stat-lbl">Taux recouvrement</div><div class="stat-val gold">${taux}%</div><div class="stat-hint">Objectif : 95%</div></div>`;
+
+  // bar chart — données réelles par mois (12 derniers mois)
+  var now2 = new Date();
+  var chartMonths = [];
+  for (var i = 11; i >= 0; i--) {
+    var d = new Date(now2.getFullYear(), now2.getMonth() - i, 1);
+    chartMonths.push({ m: d.getMonth() + 1, y: d.getFullYear(), lbl: MONTHS[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2) });
+  }
+  // Montant théorique max par mois = nb résidents × cotisation
+  var cotisMax = residents.length * (CONFIG.cotisationMensuelle || 120);
+  var chartData = chartMonths.map(function(){
+    var totalMonth = payments
+      .filter(function(p){ return p.month === cm.m && (p.year || 2025; }) === cm.y)
+      .reduce(function(){ return s + p.amount, 0);
+    var pct = cotisMax > 0 ? Math.min(100, Math.round(totalMonth / cotisMax * 100)) : 0;
+    return Object.assign({}, cm, {total: totalMonth, pct });
+  });
+  // N'afficher que les mois qui ont au moins 1 paiement OU les 6 derniers
+  var visibleData = chartData.filter(function(_,i){ return i >= 6; });
+  var maxVal = Math.max.apply(Math, visibleData.map(function(d){ return d.total; }).concat([1]));
+  document.getElementById('dash-barchart').innerHTML = visibleData.map(function(){
+    var barH = Math.max(4, Math.round(d.total / maxVal * 100));
+    var c = d.pct >= 85 ? 'var(--green)' : d.pct >= 50 ? 'var(--amber)' : d.total > 0 ? 'var(--red)' : 'var(--border)';
+    var label = d.total > 0 ? d.total.toLocaleString() + ' DH' : '—';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;" title="${d.lbl} : ${label}">
+      <span style="font-size:9px;font-weight:600;color:var(--navy);white-space:nowrap;">${d.total > 0 ? d.total.toLocaleString() : '—'}</span>
+      <div style="width:100%;display:flex;align-items:flex-end;flex:1;">
+        <div style="width:100%;border-radius:4px 4px 0 0;height:${barH}%;background:${c};min-height:4px;transition:height 0.3s;"></div>
+      </div>
+      <span style="font-size:9px;color:var(--gray);white-space:nowrap;">${d.lbl}</span></div>`;
+  }).join('');
+
+  // top arrears
+  var top = arrears.slice(0).sort(function(){ return ((b.totalMois-b.moisPayes)*b.cotis)-((a.totalMois-a.moisPayes)*a.cotis)).slice(0,5);
+  document.getElementById('dash-top-arrears').innerHTML = top.map(function(){
+    var dh = (r.totalMois-r.moisPayes)*r.cotis;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <div><div style="font-weight:500;">${r.prenom} ${r.nom}</div><div style="color:var(--gray);">Appt ${r.appt}</div></div>
+      <span style="color:var(--red);font-weight:700;">${dh.toLocaleString()} DH</span></div>`;
+  }).join('');
+
+  // payments
+  var recent = payments.slice(0).sort(function(){ return b.date.localeCompare(a.date)).slice(0,6);
+  document.getElementById('dash-payments').innerHTML = recent.map(function(){
+    var r = residents.find(function(x){ return x.id===p.resId);
+    return `<tr>
+      <td><div class="rc"><div class="av" style="background:${r.color}22;color:${r.color};">${r.initials}</div>${p.nom}</div></td>
+      <td><span class="badge bg-navy">${p.appt}</span></td>
+      <td style="color:var(--green);font-weight:600;">${p.amount.toLocaleString()} DH</td>
+      <td>${MONTHS_FULL[(p.month||1)-1]}</td>
+      <td style="color:var(--gray);">${p.date}</td>
+      <td><span class="badge bg-gray">${p.mode}</span></td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════
+//  RESIDENTS TABLE
+// ═══════════════════════════════════
+function renderResTable() {
+  var q = ((document.getElementById('rf-search')||{}).value||'').toLowerCase();
+  var st = (document.getElementById('rf-status')||{}).value||'';
+  var bat = (document.getElementById('rf-bat')||{}).value||'';
+  var data = residents.filter(function(){
+    var owed = r.totalMois - r.moisPayes;
+    var mq = !q || (r.prenom+' '+r.nom+' '+r.appt).toLowerCase().includes(q);
+    var ms = !st || (st==='ok'&&owed===0) || (st==='retard'&&owed>0);
+    var mb = !bat || r.bat===bat;
+    return mq && ms && mb;
+  });
+  document.getElementById('rf-count').textContent = data.length + ' résidents';
+  document.getElementById('res-table-body').innerHTML = data.map(function(){
+    var owed = r.totalMois - r.moisPayes;
+    var owedDH = owed*r.cotis;
+    var pct = Math.round(r.moisPayes/r.totalMois*100);
+    var barC = owed===0?'var(--green)':owed<=2?'var(--amber)':'var(--red)';
+    var badge = owed===0 ? '<span class="badge bg-green">À jour</span>' : owed<=2 ? `<span class="badge bg-amber">Retard ${owed}m</span>` : `<span class="badge bg-red">Retard ${owed}m</span>`;
+    return `<tr>
+      <td><div class="rc"><div class="av" style="background:${r.color}22;color:${r.color};">${r.initials}</div><div><div style="font-weight:500;">${r.prenom} ${r.nom}</div></div></div></td>
+      <td><strong>${r.appt}</strong></td><td>Bât. ${r.bat}</td><td style="color:var(--gray);">${r.tel}</td>
+      <td><button class="btn sm" onclick="showPin(${r.id})" style="font-family:monospace;font-size:13px;letter-spacing:2px;">••••</button></td>
+      <td>${r.cotis.toLocaleString()} DH</td>
+      <td><div style="font-size:12px;">${r.moisPayes}/${r.totalMois}</div><div class="prog"><div class="prog-fill" style="width:${pct}%;background:${barC};"></div></div></td>
+      <td style="color:${owedDH>0?'var(--red)':'var(--gray)'};font-weight:${owedDH>0?'600':'400'};">${owedDH>0?owedDH.toLocaleString()+' DH':'—'}</td>
+      <td>${badge}</td>
+      <td style="white-space:nowrap;"><button class="btn sm" onclick="openPayModal(${r.id})">+ Paiement</button> <button class="btn sm danger" onclick="deleteResident(${r.id})" title="Supprimer cet appartement" style="padding:5px 8px;">🗑</button></td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════
+//  ARRIERES
+// ═══════════════════════════════════
+function renderArrieres() {
+  var sort = (document.getElementById('arr-sort')||{}).value||'amount';
+  var data = residents.filter(function(r){ return r.moisPayes < r.totalMois; });
+  if (sort==='amount') data.sort(function(){ return ((b.totalMois-b.moisPayes)*b.cotis)-((a.totalMois-a.moisPayes)*a.cotis));
+  else data.sort(function(){ return (b.totalMois-b.moisPayes)-(a.totalMois-a.moisPayes));
+  var total = data.reduce(function(){ return s+(r.totalMois-r.moisPayes)*r.cotis, 0);
+  document.getElementById('arrears-alert').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span><strong>${total.toLocaleString()} DH</strong> d'arriérés sur <strong>${data.length} appartements</strong>.</span>`;
+
+  // Populate the manual arriere select
+  var arrSel = document.getElementById('arr-res-sel');
+  if (arrSel) {
+    arrSel.innerHTML = '<option value="">Sélectionner un résident...</option>' + residents.map(function(r){ return '<option value="'+r.id+'">'+r.prenom+' '+r.nom+' — '+r.appt+'</option>'; }).join('');
+  }
+  // Pre-fill cotis default
+  var arrCotis = document.getElementById('arr-cotis');
+  if (arrCotis && !arrCotis.value) arrCotis.value = CONFIG.cotisationMensuelle || 120;
+  // Init mode toggle (default: auto)
+  if (typeof _arrMode !== 'undefined') setArrMode(_arrMode || 'auto');
+
+  document.getElementById('arr-table-body').innerHTML = data.map(function(){
+    var owed = r.totalMois - r.moisPayes;
+    var owedDH = owed * r.cotis;
+    var moisList = MONTHS.slice(r.moisPayes, r.totalMois).join(', ');
+    var badge = owed>=5?'<span class="badge bg-red">Critique</span>':owed>=3?'<span class="badge bg-amber">Élevé</span>':'<span class="badge bg-gray">Modéré</span>';
+    // Format dateDebut
+    var depuisStr = '—';
+    if (r.dateDebut) {
+      var [y, m] = r.dateDebut.split('-');
+      depuisStr = MONTHS_FULL[parseInt(m)-1] + ' ' + y;
+    }
+    return `<tr>
+      <td><div class="rc"><div class="av" style="background:${r.color}22;color:${r.color};">${r.initials}</div><div><div style="font-weight:500;">${r.prenom} ${r.nom}</div></div></div></td>
+      <td><strong>${r.appt}</strong></td><td style="color:var(--gray);">${r.tel}</td>
+      <td style="font-size:12px;color:var(--amber);">${depuisStr}</td>
+      <td style="font-size:12px;">${moisList}</td>
+      <td style="color:var(--red);font-weight:700;">${owedDH.toLocaleString()} DH</td>
+      <td>${badge}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn sm" onclick="openPayModal(${r.id})">+ Paiement</button>
+        <button class="btn sm" onclick="printRelanceById(${r.id})">🖨</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// ── MODE ARRIÉRÉ (auto / manuel) ──
+var _arrMode = 'auto';
+var _arrMonth = null; // null = pas encore sélectionné
+var _arrYear  = null;
+var _arrManMonth = null;
+var _arrManYear  = null;
+
+function setArrMode(mode) {
+  _arrMode = mode;
+  document.getElementById('arr-section-auto').style.display   = mode === 'auto'   ? 'block' : 'none';
+  document.getElementById('arr-section-manuel').style.display = mode === 'manuel' ? 'block' : 'none';
+  document.getElementById('arr-mode-auto').className   = 'btn sm' + (mode === 'auto'   ? ' primary' : '');
+  document.getElementById('arr-mode-manuel').className = 'btn sm' + (mode === 'manuel' ? ' primary' : '');
+  document.getElementById('arr-preview').style.display = 'none';
+}
+
+function _updateArrDateLabel() {
+  var lbl = document.getElementById('arr-date-label');
+  var inp = document.getElementById('arr-date-debut');
+  if (_arrMonth && _arrYear) {
+    lbl.textContent = MONTHS_FULL[_arrMonth - 1] + ' ' + _arrYear;
+    inp.value = _arrYear + '-' + pad2();
+  } else {
+    lbl.textContent = '— Sélectionner —';
+    inp.value = '';
+  }
+  previewArriere();
+}
+
+function _updateArrManDateLabel() {
+  var lbl = document.getElementById('arr-date-label-manuel');
+  var inp = document.getElementById('arr-date-debut-manuel');
+  if (_arrManMonth && _arrManYear) {
+    lbl.textContent = MONTHS_FULL[_arrManMonth - 1] + ' ' + _arrManYear;
+    inp.value = _arrManYear + '-' + pad2();
+  } else {
+    lbl.textContent = '— Optionnel —';
+    inp.value = '';
+  }
+}
+
+function arrNavMonth(delta) {
+  if (!_arrMonth) { _arrMonth = new Date().getMonth() + 1; _arrYear = new Date().getFullYear(); }
+  _arrMonth += delta;
+  if (_arrMonth > 12) { _arrMonth = 1;  _arrYear++; }
+  if (_arrMonth < 1)  { _arrMonth = 12; _arrYear--; }
+  _updateArrDateLabel();
+}
+function arrNavYear(delta) {
+  if (!_arrYear) { _arrMonth = new Date().getMonth() + 1; _arrYear = new Date().getFullYear(); }
+  _arrYear += delta;
+  _updateArrDateLabel();
+}
+function arrManNavMonth(delta) {
+  if (!_arrManMonth) { _arrManMonth = new Date().getMonth() + 1; _arrManYear = new Date().getFullYear(); }
+  _arrManMonth += delta;
+  if (_arrManMonth > 12) { _arrManMonth = 1;  _arrManYear++; }
+  if (_arrManMonth < 1)  { _arrManMonth = 12; _arrManYear--; }
+  _updateArrManDateLabel();
+}
+function arrManNavYear(delta) {
+  if (!_arrManYear) { _arrManMonth = new Date().getMonth() + 1; _arrManYear = new Date().getFullYear(); }
+  _arrManYear += delta;
+  _updateArrManDateLabel();
+}
+
+function onArrResSel() {
+  var resId = parseInt(document.getElementById('arr-res-sel').value);
+  var r = residents.find(function(x){ return x.id === resId);
+  if (r) {
+    var cotisEl = document.getElementById('arr-cotis');
+    if (cotisEl) cotisEl.value = r.cotis || CONFIG.cotisationMensuelle || 120;
+    // Pré-remplir date si l'habitant a déjà une date
+    if (r.dateDebut) {
+      var [y, m] = r.dateDebut.split('-').map(Number);
+      _arrMonth = m; _arrYear = y;
+      _updateArrDateLabel();
+    }
+  }
+  previewArriere();
+}
+
+function previewArriere() {
+  var dateDebutVal = (document.getElementById('arr-date-debut')||{}).value;
+  var cotisVal = parseInt((document.getElementById('arr-cotis')||{}).value) || CONFIG.cotisationMensuelle || 120;
+  var prev = document.getElementById('arr-preview');
+  if (!prev) return;
+  if (!dateDebutVal) { prev.style.display = 'none'; return; }
+  var [annee, mois] = dateDebutVal.split('-').map(Number);
+  var debut = new Date(annee, mois - 1, 1);
+  var now = new Date();
+  if (debut > now) { prev.innerHTML = '⚠ La date de début est dans le futur.'; prev.style.display = 'block'; return; }
+  var totalMois = Math.max(1, (now.getFullYear() - debut.getFullYear()) * 12 + (now.getMonth() - debut.getMonth()) + 1);
+  var owedDH = totalMois * cotisVal;
+  prev.innerHTML = `📅 <strong>${totalMois} mois</strong> impayés depuis <strong>${MONTHS_FULL[mois-1]} ${annee}</strong><br>💰 Montant calculé : <strong>${owedDH.toLocaleString()} DH</strong> (${cotisVal} DH × ${totalMois} mois)`;
+  prev.style.display = 'block';
+}
+
+function saveArriere() {
+  var resId = parseInt(document.getElementById('arr-res-sel').value);
+  if (!resId) { alert('Veuillez sélectionner un résident.'); return; }
+  var r = residents.find(function(x){ return x.id === resId);
+  if (!r) return;
+
+  if (_arrMode === 'auto') {
+    var dateDebutVal = document.getElementById('arr-date-debut').value;
+    var cotisVal = parseInt(document.getElementById('arr-cotis').value) || CONFIG.cotisationMensuelle || 120;
+    if (!dateDebutVal) { alert('Veuillez sélectionner une date de début des impayés.'); return; }
+    var [annee, mois] = dateDebutVal.split('-').map(Number);
+    var debut = new Date(annee, mois - 1, 1);
+    var now = new Date();
+    if (debut > now) { alert('La date de début ne peut pas être dans le futur.'); return; }
+    var totalMois = Math.max(1, (now.getFullYear() - debut.getFullYear()) * 12 + (now.getMonth() - debut.getMonth()) + 1);
+    r.cotis = cotisVal;
+    r.totalMois = totalMois;
+    r.moisPayes = 0;
+    r.dateDebut = dateDebutVal;
+    fsUpdateResident(r);
+    if (!db) { renderArrieres(); renderResTable(); initDashboard(); }
+    document.getElementById('arr-res-sel').value = '';
+    document.getElementById('arr-cotis').value = CONFIG.cotisationMensuelle || 120;
+    document.getElementById('arr-preview').style.display = 'none';
+    _arrMonth = null; _arrYear = null;
+    _updateArrDateLabel();
+    showToast(`✓ Arriéré enregistré : ${r.prenom} ${r.nom} — ${totalMois} mois impayés (${(totalMois*cotisVal).toLocaleString()} DH) depuis ${MONTHS_FULL[mois-1]} ${annee}.`, 'green');
+
+  } else {
+    // MODE MANUEL
+    var montant = parseInt(document.getElementById('arr-montant-manuel').value);
+    var nbMois  = parseInt(document.getElementById('arr-mois-manuel').value);
+    var dateDebutManuel = document.getElementById('arr-date-debut-manuel').value;
+    if (!montant || montant <= 0) { alert('Veuillez entrer un montant valide.'); return; }
+    if (!nbMois || nbMois < 1)   { alert('Veuillez entrer un nombre de mois valide.'); return; }
+    var cotisEffective = Math.round(montant / nbMois);
+    r.cotis = cotisEffective;
+    r.totalMois = nbMois;
+    r.moisPayes = 0;
+    r.dateDebut = dateDebutManuel || null;
+    r.montantManuel = montant; // stocker le montant brut saisi
+    fsUpdateResident(r);
+    if (!db) { renderArrieres(); renderResTable(); initDashboard(); }
+    document.getElementById('arr-montant-manuel').value = '';
+    document.getElementById('arr-mois-manuel').value = '';
+    document.getElementById('arr-date-debut-manuel').value = '';
+    document.getElementById('arr-res-sel').value = '';
+    _arrManMonth = null; _arrManYear = null;
+    _updateArrManDateLabel();
+    showToast(`✓ Arriéré manuel : ${r.prenom} ${r.nom} — ${montant.toLocaleString()} DH sur ${nbMois} mois.`, 'green');
+  }
+}
+
+// ═══════════════════════════════════
+//  PAIEMENTS
+// ═══════════════════════════════════
+function renderPayTable() {
+  var m = parseInt((document.getElementById('pf-month')||{}).value||0);
+  var bat = (document.getElementById('pf-bat')||{}).value||'';
+  var data = payments.filter(function(p){ return (!m||p.month===m; }) && (!bat||p.bat===bat));
+  document.getElementById('pay-table-body').innerHTML = data.slice(0,100).map(function(){
+    var r = residents.find(function(x){ return x.id===p.resId);
+    return `<tr>
+      <td><div class="rc"><div class="av" style="background:${r.color}22;color:${r.color};">${r.initials}</div>${p.nom}</div></td>
+      <td>${p.appt}</td>
+      <td>${p.monthLabel || (MONTHS_FULL[(p.month||1)-1] + ' ' + (p.year||2025))}</td>
+      <td style="color:var(--green);font-weight:600;">${p.amount.toLocaleString()} DH</td>
+      <td><span class="badge bg-gray">${p.mode}</span></td>
+      <td style="color:var(--gray);">${p.date}</td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════
+//  FICHES
+// ═══════════════════════════════════
+function populateFicheSelect() {
+  var sel = document.getElementById('fiche-res-sel');
+  if (sel) sel.innerHTML = '<option value="">Sélectionner...</option>' + residents.map(function(r){ return '<option value="'+r.id+'">'+r.prenom+' '+r.nom+' — '+r.appt+'</option>'; }).join('');
+}
+
+function updateFichePreview() {
+  var id = parseInt((document.getElementById('fiche-res-sel')||{}).value);
+  var type = (document.getElementById('fiche-type-sel')||{}).value||'relance';
+  var r = residents.find(function(x){ return x.id===id);
+  buildFicheHTML(r, type, 'fiche-preview-box');
+}
+
+function buildFicheHTML(r, type, targetId) {
+  var box = document.getElementById(targetId);
+  if (!box) return;
+  if (!r) { box.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray);">Sélectionnez un résident pour prévisualiser.</div>'; return; }
+  var owed = r.totalMois - r.moisPayes;
+  var owedDH = owed * r.cotis;
+  var types = {relance:'AVIS DE RELANCE', releve:'RELEVÉ DE COMPTE', quittance:'QUITTANCE DE PAIEMENT', demeure:'MISE EN DEMEURE'};
+  var today = new Date().toLocaleDateString('fr-FR');
+  var residence = CONFIG.residence || 'Al Andalus';
+  var ville     = CONFIG.ville     || 'Casablanca';
+  var adminNom  = CONFIG.adminNom  || 'Le Syndic';
+
+  // Construire les lignes du tableau avec la vraie date de début
+  var debutAnnee = new Date().getFullYear();
+  var debutMoisIdx = 0; // janvier par défaut
+  if (r.dateDebut) {
+    var [dy, dm] = r.dateDebut.split('-').map(Number);
+    debutAnnee = dy;
+    debutMoisIdx = dm - 1;
+  }
+  var rows = (function(){ var _rr=[]; for(var _i=0;_i<r.totalMois;_i++){ var i=_i;
+    var moisIdx = (debutMoisIdx + i) % 12;
+    var annee   = debutAnnee + Math.floor((debutMoisIdx + i) / 12);
+    var paid    = i < r.moisPayes; _rr.push(`<tr><td>${MONTHS_FULL[moisIdx]} ${annee}</td><td>${r.cotis.toLocaleString()} DH</td>
+      <td style="color:${paid?'var(--green)':'var(--red)'};">${paid?r.cotis.toLocaleString()+' DH':'0 DH'}</td>
+      <td style="color:${paid?'var(--green)':'var(--red)'};">${paid?'—':r.cotis.toLocaleString()+' DH'}</td></tr>`);
+   } return _rr; })().join('');
+
+  box.innerHTML = `
+    <div class="psh">
+      <div><div class="psh-logo">Syndicat de Copropriété<br>Résidence ${residence}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:4px;">${ville} · Tél : 05 22 XX XX XX</div></div>
+      <div class="psh-meta"><strong>${types[type]||'DOCUMENT'}</strong><br>Réf : REF-${new Date().getFullYear()}-${r.appt}-${((r.id)<100?("0"+(r.id)<10?"00":"0")+(r.id):(r.id))}<br>Date : ${today}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;font-size:13px;">
+      <div><strong>Destinataire :</strong><br>${r.prenom} ${r.nom}<br>Appartement ${r.appt} — Bâtiment ${r.bat}<br>Résidence ${residence}, ${ville}</div>
+      <div style="text-align:right;"><strong>Contact :</strong><br>${r.tel}</div>
+    </div>
+    ${(type==='relance'||type==='demeure') && owed>0 ? `<div class="psh-subject"><strong>Objet :</strong> ${types[type]} — ${owed} mois impayés · Montant dû : <strong>${owedDH.toLocaleString()} DH</strong></div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:1rem;color:#333;">Madame, Monsieur,<br><br>
+    Nous avons le regret de vous informer que votre compte présente un solde débiteur de <strong>${owedDH.toLocaleString()} DH</strong> au titre des cotisations de copropriété.
+    ${type==='demeure'?' <strong>Vous êtes mis en demeure de régulariser dans un délai de 15 jours.</strong>':' Nous vous prions de régulariser votre situation dans les meilleurs délais.'}</p>` : ''}
+    <table class="ptable"><thead><tr><th>Mois</th><th>Cotisation due</th><th>Payé</th><th>Solde dû</th></tr></thead>
+    <tbody>${rows}<tr class="total"><td>TOTAL</td><td>${(r.totalMois*r.cotis).toLocaleString()} DH</td><td style="color:var(--green);">${(r.moisPayes*r.cotis).toLocaleString()} DH</td><td style="color:var(--red);">${owedDH.toLocaleString()} DH</td></tr></tbody></table>
+    <div class="psig"><div>${adminNom}<br><br><br>Signature : _____________<br>Date : ${today}</div>
+    <div style="text-align:right;">Pour acquit du résident<br><br><br>Signature : _____________<br>Date : _____________</div></div>
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);font-size:11px;color:var(--gray);">Règlement par virement ou espèces au bureau du syndic. Toute cotisation impayée peut entraîner des pénalités.</div>`;
+}
+
+function printRelanceById(id) {
+  var r = residents.find(function(x){ return x.id===id);
+  navAdmin('fiches', document.querySelectorAll('.nav-item')[5]);
+  setTimeout(function(){
+    populateFicheSelect();
+    document.getElementById('fiche-res-sel').value = id;
+    document.getElementById('fiche-type-sel').value = 'relance';
+    updateFichePreview();
+  }, 100);
+}
+
+// ═══════════════════════════════════
+//  CODES PIN
+// ═══════════════════════════════════
+function renderCodesTable() {
+  document.getElementById('codes-table-body').innerHTML = residents.slice(0, 60).map(function(){
+    var status = r.pinActive ? '<span class="badge bg-green">Actif</span>' : '<span class="badge bg-gray">Désactivé</span>';
+    return `<tr>
+      <td><div class="rc"><div class="av" style="background:${r.color}22;color:${r.color};">${r.initials}</div>${r.prenom} ${r.nom}</div></td>
+      <td><strong>${r.appt}</strong></td>
+      <td><span style="font-family:monospace;font-size:14px;font-weight:700;letter-spacing:3px;color:var(--navy);">••••</span></td>
+      <td>${status}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn sm" onclick="showPin(${r.id})">Voir le code</button>
+        <button class="btn sm" onclick="togglePin(${r.id})">${r.pinActive?'Désactiver':'Activer'}</button>
+      </td></tr>`;
+  }).join('');
+}
+
+function showPin(resId) {
+  currentPinRes = residents.find(function(r){ return r.id===resId);
+  document.getElementById('pin-modal-info').textContent = `${currentPinRes.prenom} ${currentPinRes.nom} — Appartement ${currentPinRes.appt}`;
+  document.getElementById('pin-modal-code').textContent = currentPinRes.pin;
+  document.getElementById('pin-new-val').value = '';
+  openModal('pin');
+}
+
+function updatePin() {
+  var newPin = document.getElementById('pin-new-val').value.trim();
+  if (newPin && (!/^\d{4}$/.test(newPin))) { alert('Le code PIN doit contenir exactement 4 chiffres.'); return; }
+  if (newPin) { currentPinRes.pin = newPin; document.getElementById('pin-modal-code').textContent = newPin; }
+  closeModal('pin');
+  fsUpdateResident(currentPinRes);
+  if (!db) { renderCodesTable(); renderResTable(); }
+  showToast('Code PIN mis à jour pour ' + currentPinRes.prenom + ' ' + currentPinRes.nom + '.', 'green');
+}
+
+function togglePin(resId) {
+  var r = residents.find(function(x){ return x.id===resId);
+  r.pinActive = !r.pinActive;
+  fsUpdateResident(r);
+  if (!db) renderCodesTable();
+}
+
+// ═══════════════════════════════════
+//  PAYMENT MODAL
+// ═══════════════════════════════════
+// ── Navigateur mois/année pour le paiement ──
+var _payMonth = new Date().getMonth() + 1; // 1-12
+var _payYear  = new Date().getFullYear();
+
+function payNavMonth(delta) {
+  _payMonth += delta;
+  if (_payMonth > 12) { _payMonth = 1;  _payYear++; }
+  if (_payMonth < 1)  { _payMonth = 12; _payYear--; }
+  updatePayNav();
+}
+function payNavYear(delta) {
+  _payYear += delta;
+  updatePayNav();
+}
+function updatePayNav() {
+  document.getElementById('qp-month-label').textContent = MONTHS_FULL[_payMonth-1] + ' ' + _payYear;
+  document.getElementById('qp-month').value = _payMonth;
+  document.getElementById('qp-year').value  = _payYear;
+  updatePayPreview();
+}
+
+function updatePayPreview() {
+  if (!currentPayRes) return;
+  var amount  = parseInt(document.getElementById('qp-amount').value) || 0;
+  var owedNow = Math.max(0, (currentPayRes.totalMois - currentPayRes.moisPayes) * currentPayRes.cotis);
+  var soldeApres = Math.max(0, owedNow - amount);
+  var prev = document.getElementById('pay-preview');
+  if (!prev) return;
+  if (amount <= 0) { prev.style.display = 'none'; return; }
+  var color = soldeApres === 0 ? 'var(--green-bg)' : 'var(--amber-bg)';
+  var textC = soldeApres === 0 ? 'var(--green)' : 'var(--amber)';
+  prev.style.background = color;
+  prev.style.color = textC;
+  prev.style.border = '1px solid ' + (soldeApres === 0 ? '#b7e4cf' : '#f0d5a0');
+  prev.innerHTML = `💰 Solde actuel : <strong>${owedNow.toLocaleString()} DH</strong><br>`
+    + `➖ Paiement : <strong>${amount.toLocaleString()} DH</strong><br>`
+    + `${soldeApres === 0 ? '✅' : '⚠'} Solde après paiement : <strong>${soldeApres.toLocaleString()} DH</strong>`;
+  prev.style.display = 'block';
+}
+
+function openPayModal(resId) {
+  currentPayRes = residents.find(function(r){ return r.id===resId);
+  var owed = Math.max(0, (currentPayRes.totalMois - currentPayRes.moisPayes) * currentPayRes.cotis);
+  document.getElementById('pay-modal-info').innerHTML =
+    `<strong>${currentPayRes.prenom} ${currentPayRes.nom}</strong> — Appt ${currentPayRes.appt}<br>`
+    + `Cotisation : <strong>${currentPayRes.cotis.toLocaleString()} DH/mois</strong> · `
+    + `Mois payés : <strong>${currentPayRes.moisPayes}/${currentPayRes.totalMois}</strong> · `
+    + `Solde dû : <strong style="color:var(--red);">${owed.toLocaleString()} DH</strong>`;
+  document.getElementById('qp-amount').value = currentPayRes.cotis;
+  // Initialiser le navigateur sur le mois actuel
+  _payMonth = new Date().getMonth() + 1;
+  _payYear  = new Date().getFullYear();
+  updatePayNav();
+  updatePayPreview();
+  openModal('pay');
+}
+
+function confirmPay() {
+  if (!currentPayRes) return;
+  var amount = parseInt(document.getElementById('qp-amount').value);
+  var mode   = document.getElementById('qp-mode').value;
+  var month  = _payMonth;
+  var year   = _payYear;
+  if (!amount || amount <= 0) { alert('Veuillez entrer un montant valide.'); return; }
+
+  // Calculer combien de mois ce paiement couvre
+  var moisCouverts = Math.max(1, Math.round(amount / currentPayRes.cotis));
+  currentPayRes.moisPayes = Math.min(currentPayRes.moisPayes + moisCouverts, currentPayRes.totalMois);
+  fsUpdateResident(currentPayRes);
+
+  var p = {
+    resId: currentPayRes.id,
+    nom:   currentPayRes.prenom + ' ' + currentPayRes.nom,
+    appt:  currentPayRes.appt,
+    bat:   currentPayRes.bat,
+    month, year, amount, mode,
+    date: new Date().toISOString().split('T')[0],
+    monthLabel: MONTHS_FULL[month-1] + ' ' + year
+  };
+  fsAddPayment(p);
+
+  closeModal('pay');
+  if (!db) { renderResTable(); renderArrieres(); initDashboard(); }
+  var soldeRestant = Math.max(0, (currentPayRes.totalMois - currentPayRes.moisPayes) * currentPayRes.cotis);
+  showToast(`✓ ${amount.toLocaleString()} DH enregistré pour ${currentPayRes.prenom} ${currentPayRes.nom} — ${MONTHS_FULL[month-1]} ${year}. Solde restant : ${soldeRestant.toLocaleString()} DH`, 'green');
+}
+
+// ═══════════════════════════════════
+//  ADD RESIDENT
+// ═══════════════════════════════════
+function addResident() {
+  var prenom = document.getElementById('nr-prenom').value.trim();
+  var nom = document.getElementById('nr-nom').value.trim();
+  var bat = document.getElementById('nr-bat').value;
+  var appt = document.getElementById('nr-appt').value.trim();
+  var pin = document.getElementById('nr-pin').value.trim();
+  var cotis = parseInt(document.getElementById('nr-cotis').value)||CONFIG.cotisationMensuelle||120;
+  var tel = document.getElementById('nr-tel').value.trim();
+  var dateDebutVal = document.getElementById('nr-date-debut').value; // format AAAA-MM
+  if (!prenom||!nom||!appt||!pin) { alert('Veuillez remplir tous les champs obligatoires (*) y compris le code PIN.'); return; }
+  if (!/^\d{4}$/.test(pin)) { alert('Le code PIN doit contenir exactement 4 chiffres.'); return; }
+
+  // Calcul du nombre de mois d'arriérés depuis la date de début jusqu'à aujourd'hui
+  var totalMois = 6;
+  var dateDebut = null;
+  if (dateDebutVal) {
+    var [annee, mois] = dateDebutVal.split('-').map(Number);
+    var debut = new Date(annee, mois - 1, 1);
+    var now = new Date();
+    var nowY = now.getFullYear(), nowM = now.getMonth();
+    var diff = (nowY - debut.getFullYear()) * 12 + (nowM - debut.getMonth());
+    totalMois = Math.max(1, diff + 1); // au moins 1 mois
+    dateDebut = dateDebutVal;
+  }
+
+  var id = nextId++;
+  var newRes = { id, nom, prenom, appt: bat+appt, bat, tel: tel||'—', cotis, moisPayes: 0, totalMois, dateDebut: dateDebut||null, initials: prenom[0]+nom[0], color: AV_COLORS[id%AV_COLORS.length], pin, pinActive: true };
+  closeModal('addRes');
+  fsAddResident(newRes).then(function() {
+    if (!db) { renderResTable(); initDashboard(); }
+  });
+  showToast('✓ Résident ' + prenom + ' ' + nom + ' ajouté' + (!db ? ' (hors-ligne)' : '') + '.', 'green');
+  ['nr-prenom','nr-nom','nr-appt','nr-tel','nr-pin'].forEach(function(){ ; }).value='');
+  document.getElementById('nr-date-debut').value='';
+}
+
+// ═══════════════════════════════════
+//  PORTAIL RÉSIDENT
+// ═══════════════════════════════════
+function renderPortal(r) {
+  var owed = r.totalMois - r.moisPayes;
+  var owedDH = owed * r.cotis;
+  document.getElementById('portal-hero').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;">
+      <div>
+        <div class="ph-av">${r.initials}</div>
+        <div class="ph-name">${r.prenom} ${r.nom}</div>
+        <div class="ph-appt">Appartement ${r.appt} — Bâtiment ${r.bat} · Résidence ${CONFIG.residence||'Al Andalus'}</div>
+      </div>
+    </div>
+    <div class="ph-balance" style="position:relative;z-index:1;">
+      <div><div class="ph-bal-lbl">${owed>0?'Solde dû':'Situation'}</div>
+        <div class="ph-bal-val ${owed>0?'owed':'ok'}">${owed>0?owedDH.toLocaleString()+' DH':'✓ À jour'}</div></div>
+      <div class="ph-cotis"><div class="ph-cotis-val">${r.cotis.toLocaleString()} DH</div><div class="ph-cotis-lbl">/ mois</div></div>
+    </div>`;
+
+  document.getElementById('portal-month-grid').innerHTML =
+    MONTHS_FULL.slice(0, r.totalMois).map(function(){
+      var paid = i < r.moisPayes;
+      return `<div class="mc ${paid?'paid':'unpaid'}">
+        <div class="mc-name">${MONTHS[i]}</div>
+        <div class="mc-ico">${paid?'✓':'✗'}</div>
+        <div class="mc-amt">${r.cotis} DH</div></div>`;
+    }).join('') +
+    MONTHS.slice(r.totalMois).map(function(m){ return '<div class="mc future"><div class="mc-name">'+m+'</div><div class="mc-ico" style="color:var(--gray);">—</div><div class="mc-amt">—</div></div>'; }).join('');
+
+  document.getElementById('portal-recap').innerHTML = `
+    <div class="recap-cell" style="background:var(--green-bg);">
+      <div class="recap-val" style="color:var(--green);">${r.moisPayes}</div>
+      <div class="recap-lbl" style="color:var(--green);">Mois payés</div>
+    </div>
+    <div class="recap-cell" style="background:var(--red-bg);">
+      <div class="recap-val" style="color:var(--red);">${owed}</div>
+      <div class="recap-lbl" style="color:var(--red);">Mois impayés</div>
+    </div>
+    <div class="recap-cell" style="background:var(--gray-bg);">
+      <div class="recap-val">${r.cotis.toLocaleString()}</div>
+      <div class="recap-lbl" style="color:var(--gray);">DH / mois</div>
+    </div>`;
+}
+
+function printPortalFiche() {
+  if (!loggedPortalRes) return;
+  var box = document.getElementById('portal-print-fiche');
+  box.style.display = 'block';
+  buildFicheHTML(loggedPortalRes, 'releve', 'portal-print-fiche');
+  setTimeout(function(){ return window.print(), 300);
+}
+
+// ═══════════════════════════════════
+//  MISC
+// ═══════════════════════════════════
+function openModal(id) { document.getElementById('modal-'+id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-'+id).classList.remove('open'); }
+
+function quickSearch(q) {
+  if (!q) return;
+  navAdmin('residents', document.querySelectorAll('.nav-item')[1]);
+  setTimeout(function(){ document.getElementById('rf-search').value = q; renderResTable(); }, 50);
+}
+
+// ═══════════════════════════════════
+//  APPLY CONFIG (résidence + admin)
+// ═══════════════════════════════════
+function applyConfig() {
+  var res = CONFIG.residence;
+  var admin = CONFIG.adminNom;
+  var ville = CONFIG.ville;
+  document.title = 'GHITA 1 — Résidence ' + res;
+  var el;
+  el = document.getElementById('login-sub-res');
+  if (el) el.textContent = 'Résidence ' + res + ' · ' + ville;
+  el = document.getElementById('sidebar-sub');
+  if (el) el.textContent = 'Résidence ' + res + ' · 2025';
+  el = document.getElementById('sidebar-admin-name');
+  if (el) el.textContent = 'Syndic · ' + admin;
+  el = document.getElementById('portal-topbar-res');
+  if (el) el.textContent = 'GHITA 1 · Résidence ' + res;
+  refreshBatSelects();
+}
+
+function refreshBatSelects() {
+  var imm = CONFIG.immeubles || ['A','B','C','D'];
+  var opts = imm.map(function(b){ return '<option value="'+b+'">'+b+'</option>'; }).join('');
+  var allOpts = '<option value="">Tous bâtiments</option>' + opts;
+  ['rf-bat','pf-bat'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    var val = el.value;
+    el.innerHTML = allOpts;
+    if (val) el.value = val;
+  });
+  var rpBat = document.getElementById('rp-bat');
+  if (rpBat) {
+    var val = rpBat.value;
+    rpBat.innerHTML = '<option value="">Tous bâtiments</option>' + opts;
+    if (val) rpBat.value = val;
+  }
+  var nrBat = document.getElementById('nr-bat');
+  if (nrBat) {
+    nrBat.innerHTML = opts;
+  }
+}
+
+// appliquer au chargement pour la page login
+(function() { applyConfig(); })();
+
+// ═══════════════════════════════════
+//  RAPPORT GLOBAL PAIEMENTS
+// ═══════════════════════════════════
+function renderRapport() {
+  var batFilter = document.getElementById('rp-bat') ? document.getElementById('rp-bat').value : '';
+  var statFilter = document.getElementById('rp-statut') ? document.getElementById('rp-statut').value : '';
+
+  var data = residents.filter(function(r) {
+    var mb = !batFilter || r.bat === batFilter;
+    var owed = r.totalMois - r.moisPayes;
+    var ms = !statFilter || (statFilter === 'ok' && owed === 0) || (statFilter === 'retard' && owed > 0);
+    return mb && ms;
+  });
+
+  document.getElementById('rp-count').textContent = data.length + ' appartements';
+
+  // Grouper par bâtiment
+  var bats = {};
+  data.forEach(function(r) {
+    if (!bats[r.bat]) bats[r.bat] = [];
+    bats[r.bat].push(r);
+  });
+
+  var html = '';
+  var batKeys = Object.keys(bats).sort();
+  batKeys.forEach(function(bat) {
+    var list = bats[bat];
+    var totalPaye = list.reduce(function(s,r){ return s + r.moisPayes * r.cotis; }, 0);
+    var totalDu = list.reduce(function(s,r){ return s + (r.totalMois - r.moisPayes) * r.cotis; }, 0);
+    var nbRetard = list.filter(function(r){ return r.moisPayes < r.totalMois; }).length;
+
+    html += '<div class="card" style="margin-bottom:1.25rem;padding:0;overflow:hidden;">';
+    html += '<div style="background:var(--navy);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">';
+    html += '<div style="color:var(--gold2);font-weight:600;font-size:14px;">Bâtiment ' + bat + '</div>';
+    html += '<div style="display:flex;gap:16px;">';
+    html += '<span style="color:rgba(255,255,255,0.6);font-size:12px;">✓ Encaissé : <strong style="color:#69f0ae;">' + totalPaye.toLocaleString() + ' DH</strong></span>';
+    html += '<span style="color:rgba(255,255,255,0.6);font-size:12px;">✗ Arriérés : <strong style="color:#ff8a80;">' + totalDu.toLocaleString() + ' DH</strong></span>';
+    html += '<span style="color:rgba(255,255,255,0.6);font-size:12px;">' + nbRetard + ' appt(s) en retard</span>';
+    html += '</div></div>';
+
+    html += '<div class="tbl-wrap"><table><thead><tr>';
+    html += '<th>Appartement</th><th>Résident</th><th>Cotis/mois</th>';
+    MONTHS_FULL.slice(0,6).forEach(function(m){ html += '<th style="text-align:center;font-size:10px;">' + m.substring(0,3) + '</th>'; });
+    html += '<th>Payés</th><th>Solde dû</th><th>Statut</th>';
+    html += '</tr></thead><tbody>';
+
+    list.forEach(function(r) {
+      var owed = r.totalMois - r.moisPayes;
+      var owedDH = owed * r.cotis;
+      var badge = owed === 0
+        ? '<span class="badge bg-green">À jour</span>'
+        : owed <= 2
+          ? '<span class="badge bg-amber">Retard ' + owed + 'm</span>'
+          : '<span class="badge bg-red">Retard ' + owed + 'm</span>';
+      html += '<tr>';
+      html += '<td><strong>' + r.appt + '</strong></td>';
+      html += '<td><div class="rc"><div class="av" style="background:' + r.color + '22;color:' + r.color + ';">' + r.initials + '</div>' + r.prenom + ' ' + r.nom + '</div></td>';
+      html += '<td>' + r.cotis.toLocaleString() + ' DH</td>';
+      for (var m = 0; m < 6; m++) {
+        var paid = m < r.moisPayes;
+        html += '<td style="text-align:center;">';
+        if (m < r.totalMois) {
+          html += paid
+            ? '<span style="color:var(--green);font-size:14px;font-weight:700;">✓</span>'
+            : '<span style="color:var(--red);font-size:14px;font-weight:700;">✗</span>';
+        } else {
+          html += '<span style="color:var(--gray);">—</span>';
+        }
+        html += '</td>';
+      }
+      html += '<td><strong>' + r.moisPayes + '</strong>/' + r.totalMois + '</td>';
+      html += '<td style="color:' + (owedDH > 0 ? 'var(--red)' : 'var(--gray)') + ';font-weight:' + (owedDH > 0 ? '600' : '400') + ';">' + (owedDH > 0 ? owedDH.toLocaleString() + ' DH' : '—') + '</td>';
+      html += '<td>' + badge + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+
+  document.getElementById('rapport-content').innerHTML = html;
+}
+
+function printRapport() {
+  var batFilter = document.getElementById('rp-bat').value;
+  var statFilter = document.getElementById('rp-statut').value;
+  var data = residents.filter(function(r) {
+    var mb = !batFilter || r.bat === batFilter;
+    var owed = r.totalMois - r.moisPayes;
+    var ms = !statFilter || (statFilter === 'ok' && owed === 0) || (statFilter === 'retard' && owed > 0);
+    return mb && ms;
+  });
+
+  var totalPaye = data.reduce(function(s,r){ return s + r.moisPayes * r.cotis; }, 0);
+  var totalDu = data.reduce(function(s,r){ return s + (r.totalMois - r.moisPayes) * r.cotis; }, 0);
+  var nbRetard = data.filter(function(r){ return r.moisPayes < r.totalMois; }).length;
+  var today = new Date().toLocaleDateString('fr-FR');
+
+  // Grouper par bâtiment
+  var bats = {};
+  data.forEach(function(r) {
+    if (!bats[r.bat]) bats[r.bat] = [];
+    bats[r.bat].push(r);
+  });
+
+  var printWin = window.open('', '_blank', 'width=900,height=700');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+  html += '<title>Rapport ' + CONFIG.residence + '</title>';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;font-size:12px;color:#0f1f3d;margin:0;padding:20px;}';
+  html += 'h1{font-size:20px;margin:0;}';
+  html += '.header{border-bottom:3px solid #0f1f3d;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;}';
+  html += '.summary{display:flex;gap:20px;margin-bottom:18px;flex-wrap:wrap;}';
+  html += '.sum-box{padding:10px 16px;border-radius:8px;text-align:center;}';
+  html += '.sum-box .val{font-size:18px;font-weight:700;}';
+  html += '.sum-box .lbl{font-size:10px;color:#64748b;margin-top:2px;}';
+  html += 'h2{font-size:14px;background:#0f1f3d;color:#c9a84c;padding:8px 12px;margin:0 0 0 0;border-radius:4px 4px 0 0;}';
+  html += 'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:20px;}';
+  html += 'th{background:#f1f5f9;padding:7px 8px;text-align:left;border:1px solid #e2e8f0;font-size:10px;text-transform:uppercase;}';
+  html += 'td{padding:6px 8px;border:1px solid #e2e8f0;}';
+  html += 'tr:nth-child(even){background:#fafbfc;}';
+  html += '.ok{color:#1e7c4f;font-weight:700;}';
+  html += '.bad{color:#c0392b;font-weight:700;}';
+  html += '.badge-ok{background:#edf7f2;color:#1e7c4f;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}';
+  html += '.badge-bad{background:#fdf0ef;color:#c0392b;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}';
+  html += '.badge-warn{background:#fef3e2;color:#b5650d;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}';
+  html += '@media print{body{padding:10px;}}';
+  html += '</style></head><body>';
+
+  html += '<div class="header"><div>';
+  html += '<h1>GHITA 1 — Résidence ' + CONFIG.residence + '</h1>';
+  html += '<div style="font-size:12px;color:#64748b;margin-top:4px;">Rapport de recouvrement des cotisations 2025</div>';
+  html += '<div style="font-size:11px;color:#64748b;">Syndic : ' + CONFIG.adminNom + ' · Édité le ' + today + '</div>';
+  html += '</div>';
+  html += '<div style="text-align:right;font-size:11px;color:#64748b;">';
+  html += (batFilter ? 'Bâtiment : ' + batFilter : 'Tous bâtiments') + '<br>';
+  html += (statFilter === 'ok' ? 'Filtre : À jour' : statFilter === 'retard' ? 'Filtre : En retard' : 'Tous statuts') + '<br>';
+  html += data.length + ' appartements';
+  html += '</div></div>';
+
+  html += '<div class="summary">';
+  html += '<div class="sum-box" style="background:#edf7f2;"><div class="val ok">' + totalPaye.toLocaleString() + ' DH</div><div class="lbl">Total encaissé</div></div>';
+  html += '<div class="sum-box" style="background:#fdf0ef;"><div class="val bad">' + totalDu.toLocaleString() + ' DH</div><div class="lbl">Total arriérés</div></div>';
+  html += '<div class="sum-box" style="background:#fef3e2;"><div class="val" style="color:#b5650d;">' + nbRetard + '</div><div class="lbl">Appts en retard</div></div>';
+  html += '<div class="sum-box" style="background:#f1f5f9;"><div class="val">' + (data.length - nbRetard) + '</div><div class="lbl">Appts à jour</div></div>';
+  html += '</div>';
+
+  var batKeys = Object.keys(bats).sort();
+  batKeys.forEach(function(bat) {
+    var list = bats[bat];
+    html += '<h2>Bâtiment ' + bat + ' — ' + list.length + ' appartements</h2>';
+    html += '<table><thead><tr><th>Appt</th><th>Résident</th><th>Cotis/mois</th>';
+    var moisHeaders = ['Jan','Fév','Mar','Avr','Mai','Jun'];
+    moisHeaders.forEach(function(m){ html += '<th style="text-align:center;">' + m + '</th>'; });
+    html += '<th>Payés</th><th>Arriéré</th><th>Statut</th></tr></thead><tbody>';
+
+    list.forEach(function(r) {
+      var owed = r.totalMois - r.moisPayes;
+      var owedDH = owed * r.cotis;
+      var badgeHtml = owed === 0
+        ? '<span class="badge-ok">À jour</span>'
+        : owed <= 2
+          ? '<span class="badge-warn">Retard ' + owed + 'm</span>'
+          : '<span class="badge-bad">Retard ' + owed + 'm</span>';
+      html += '<tr><td><strong>' + r.appt + '</strong></td>';
+      html += '<td>' + r.prenom + ' ' + r.nom + '</td>';
+      html += '<td>' + r.cotis.toLocaleString() + ' DH</td>';
+      for (var m = 0; m < 6; m++) {
+        if (m < r.totalMois) {
+          html += m < r.moisPayes
+            ? '<td style="text-align:center;background:#edf7f2;"><span class="ok">✓</span></td>'
+            : '<td style="text-align:center;background:#fdf0ef;"><span class="bad">✗</span></td>';
+        } else {
+          html += '<td style="text-align:center;color:#64748b;">—</td>';
+        }
+      }
+      html += '<td style="text-align:center;font-weight:600;">' + r.moisPayes + '/' + r.totalMois + '</td>';
+      html += '<td style="font-weight:600;color:' + (owedDH > 0 ? '#c0392b' : '#1e7c4f') + ';">' + (owedDH > 0 ? owedDH.toLocaleString() + ' DH' : '—') + '</td>';
+      html += '<td>' + badgeHtml + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  });
+
+  html += '<div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:12px;color:#64748b;">';
+  html += '<div>Signature du syndic :<br><br><br>____________________<br>' + CONFIG.adminNom + '</div>';
+  html += '<div>Cachet de la résidence :<br><br><br>____________________<br>Résidence ' + CONFIG.residence + '</div>';
+  html += '</div>';
+  html += '</body></html>';
+
+  printWin.document.write(html);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(function(){ printWin.print(); }, 400);
+}
+
+// ═══════════════════════════════════
+//  COMPTABILITÉ — 3 CAISSES
+// ═══════════════════════════════════
+var CAT_LABELS = { electricite:'Électricité', gardien:'Gardien', jardinier:'Jardinier', reparations:'Réparations', divers:'Divers' };
+var CAT_ICON   = { electricite:'⚡', gardien:'👮', jardinier:'🌿', reparations:'🔧', divers:'📦' };
+var CAT_COLORS = { electricite:'#1d4ed8', gardien:'#0e7490', jardinier:'#1e7c4f', reparations:'#b5650d', divers:'#64748b' };
+var CAT_BG     = { electricite:'#eff6ff', gardien:'#ecfeff', jardinier:'#edf7f2', reparations:'#fef3e2', divers:'#f1f5f9' };
+
+// --- Calculs par caisse ---
+function getCaisseEspeces() {
+  var entrees = payments.filter(function(p){ return (p.mode||'').toLowerCase()==='espèces'||p.mode==='Espèces'; })
+                        .reduce(function(s,p){ return s+p.amount; }, 0);
+  var sorties = depenses.filter(function(d){ return !d.src || d.src==='especes'; })
+                        .reduce(function(s,d){ return s+d.montant; }, 0);
+  return { entrees: entrees, sorties: sorties, solde: entrees - sorties };
+}
+function getCaisseBanque() {
+  var entrees = payments.filter(function(p){ var m=(p.mode||'').toLowerCase(); return m==='virement'||m==='chèque'; })
+                        .reduce(function(s,p){ return s+p.amount; }, 0);
+  var sorties = depenses.filter(function(d){ return d.src==='banque'; })
+                        .reduce(function(s,d){ return s+d.montant; }, 0);
+  return { entrees: entrees, sorties: sorties, solde: entrees - sorties };
+}
+function getTotalCollecte() { return payments.reduce(function(s,p){ return s+p.amount; },0); }
+function getTotalDepenses(cf) { return depenses.filter(function(d){ return !cf||d.cat===cf; }).reduce(function(s,d){ return s+d.montant; },0); }
+
+// Toggle visuel radio caisse dépense
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.name === 'dep-src') {
+    var eEl = document.getElementById('dep-src-especes-lbl');
+    var bEl = document.getElementById('dep-src-banque-lbl');
+    if (!eEl || !bEl) return;
+    if (e.target.value === 'especes') {
+      eEl.style.borderColor = 'var(--green)'; eEl.style.background = 'var(--green-bg)';
+      eEl.querySelector('span').style.color = 'var(--green)';
+      bEl.style.borderColor = 'var(--border)'; bEl.style.background = '';
+      bEl.querySelector('span').style.color = 'var(--gray)';
+    } else {
+      bEl.style.borderColor = 'var(--navy)'; bEl.style.background = '#e8edf5';
+      bEl.querySelector('span').style.color = 'var(--navy)';
+      eEl.style.borderColor = 'var(--border)'; eEl.style.background = '';
+      eEl.querySelector('span').style.color = 'var(--gray)';
+    }
+  }
+});
+
+function renderCompta() {
+  var depDateEl = document.getElementById('dep-date');
+  if (depDateEl && !depDateEl.value) {
+    var now = new Date();
+    var mm = pad2(now.getMonth()+1);
+    var dd = pad2(now.getDate());
+    depDateEl.value = now.getFullYear()+'-'+mm+'-'+dd;
+  }
+
+  var ce   = getCaisseEspeces();
+  var cb   = getCaisseBanque();
+  var collecte   = getTotalCollecte();
+  var totalDep   = getTotalDepenses();
+  var soldeGlobal = collecte - totalDep;
+
+  // --- 3 caisses ---
+  var ceEl = document.getElementById('caisse-especes-val');
+  var cbEl = document.getElementById('caisse-banque-val');
+  var csEl = document.getElementById('caisse-solde-val');
+  if (ceEl) { ceEl.textContent = ce.solde.toLocaleString() + ' DH'; ceEl.style.color = ce.solde >= 0 ? 'var(--green)' : 'var(--red)'; }
+  if (cbEl) { cbEl.textContent = cb.solde.toLocaleString() + ' DH'; cbEl.style.color = cb.solde >= 0 ? 'var(--navy)' : 'var(--red)'; }
+  if (csEl) { csEl.textContent = soldeGlobal.toLocaleString() + ' DH'; csEl.style.color = soldeGlobal >= 0 ? 'var(--amber)' : 'var(--red)'; }
+  var heEl = document.getElementById('caisse-especes-hint');
+  if (heEl) heEl.textContent = '+ ' + ce.entrees.toLocaleString() + ' encaissés — ' + ce.sorties.toLocaleString() + ' dépensés';
+  var hbEl = document.getElementById('caisse-banque-hint');
+  if (hbEl) hbEl.textContent = '+ ' + cb.entrees.toLocaleString() + ' encaissés — ' + cb.sorties.toLocaleString() + ' dépensés';
+  var hsEl = document.getElementById('caisse-solde-hint');
+  if (hsEl) hsEl.textContent = collecte.toLocaleString() + ' collectés — ' + totalDep.toLocaleString() + ' dépensés';
+
+  // --- Stats cards ---
+  var sh = '';
+  sh += '<div class="stat-card green"><div class="stat-lbl">Total collecté</div><div class="stat-val green">'+collecte.toLocaleString()+' DH</div><div class="stat-hint">Toutes caisses</div></div>';
+  sh += '<div class="stat-card"><div class="stat-lbl">💵 Espèces</div><div class="stat-val" style="color:var(--green);font-size:20px;">'+ce.solde.toLocaleString()+' DH</div><div class="stat-hint">'+ce.entrees.toLocaleString()+' entrées</div></div>';
+  sh += '<div class="stat-card"><div class="stat-lbl">🏦 Banque</div><div class="stat-val" style="color:var(--navy);font-size:20px;">'+cb.solde.toLocaleString()+' DH</div><div class="stat-hint">'+cb.entrees.toLocaleString()+' entrées</div></div>';
+  sh += '<div class="stat-card red"><div class="stat-lbl">Total dépenses</div><div class="stat-val red">'+totalDep.toLocaleString()+' DH</div><div class="stat-hint">'+depenses.length+' opération(s)</div></div>';
+  var sc = soldeGlobal>=0?'gold':'red';
+  sh += '<div class="stat-card '+sc+'"><div class="stat-lbl">Solde global</div><div class="stat-val '+sc+'">'+soldeGlobal.toLocaleString()+' DH</div><div class="stat-hint">'+(soldeGlobal>=0?'Excédent':'Déficit')+'</div></div>';
+  document.getElementById('compta-stats').innerHTML = sh;
+
+  // --- Bilan card ---
+  var pct = collecte>0 ? Math.min(100,Math.round(totalDep/collecte*100)) : 0;
+  var bh='';
+  bh+='<div style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Détail des caisses</div>';
+  bh+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">';
+  bh+='<span style="font-size:13px;">💵 Espèces (entrées)</span><span style="font-weight:600;color:var(--green);">+'+ce.entrees.toLocaleString()+' DH</span></div>';
+  bh+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">';
+  bh+='<span style="font-size:13px;">💵 Espèces (dépenses)</span><span style="font-weight:600;color:var(--red);">−'+ce.sorties.toLocaleString()+' DH</span></div>';
+  bh+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">';
+  bh+='<span style="font-size:13px;">🏦 Banque (entrées)</span><span style="font-weight:600;color:var(--navy);">+'+cb.entrees.toLocaleString()+' DH</span></div>';
+  bh+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">';
+  bh+='<span style="font-size:13px;">🏦 Banque (dépenses)</span><span style="font-weight:600;color:var(--red);">−'+cb.sorties.toLocaleString()+' DH</span></div>';
+  bh+='<div style="margin:10px 0 4px;font-size:11px;color:var(--gray);">Taux de dépense</div>';
+  bh+='<div style="background:var(--border);height:8px;border-radius:4px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+(pct>80?'var(--red)':pct>60?'var(--amber)':'var(--green)')+';border-radius:4px;"></div></div>';
+  bh+='<div style="font-size:11px;color:var(--gray);text-align:right;margin-top:3px;">'+pct+'% des recettes dépensées</div>';
+  bh+='<div style="margin-top:12px;padding:12px;border-radius:10px;background:'+(soldeGlobal>=0?'var(--green-bg)':'var(--red-bg)')+';text-align:center;">';
+  bh+='<div style="font-size:11px;color:var(--gray);margin-bottom:4px;">SOLDE GLOBAL</div>';
+  bh+='<div style="font-family:\'DM Serif Display\',serif;font-size:26px;color:'+(soldeGlobal>=0?'var(--green)':'var(--red)')+';">'+soldeGlobal.toLocaleString()+' DH</div></div>';
+  document.getElementById('compta-bilan').innerHTML = bh;
+
+  renderDepenses();
+}
+
+function renderDepenses() {
+  var cf  = document.getElementById('dep-filter-cat') ? document.getElementById('dep-filter-cat').value : '';
+  var src = document.getElementById('dep-filter-src') ? document.getElementById('dep-filter-src').value : '';
+  var list = depenses.filter(function(d){ return (!cf||d.cat===cf) && (!src||d.src===src||(src==='especes'&&!d.src)); });
+  list.sort(function(a,b){ return b.date.localeCompare(a.date); });
+  if(!list.length){ document.getElementById('dep-table-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:2rem;">Aucune dépense enregistrée.</td></tr>'; return; }
+  document.getElementById('dep-table-body').innerHTML = list.map(function(d){
+    var lbl=CAT_ICON[d.cat]+' '+CAT_LABELS[d.cat], clr=CAT_COLORS[d.cat]||'#64748b', bg=CAT_BG[d.cat]||'#f1f5f9';
+    var ds=d.date?d.date.split('-').reverse().join('/'):'—';
+    var srcLbl = (!d.src||d.src==='especes') ? '<span class="badge" style="background:var(--green-bg);color:var(--green);">💵 Espèces</span>' : '<span class="badge" style="background:#e8edf5;color:var(--navy);">🏦 Banque</span>';
+    return '<tr><td style="color:var(--gray);font-size:12px;">'+ds+'</td>'+
+      '<td><span style="background:'+bg+';color:'+clr+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">'+lbl+'</span></td>'+
+      '<td>'+(d.desc||'—')+'</td>'+
+      '<td>'+srcLbl+'</td>'+
+      '<td style="font-weight:600;color:var(--red);">'+d.montant.toLocaleString()+' DH</td>'+
+      '<td><button class="btn sm danger" onclick="deleteDepense('+d.id+')" title="Supprimer" style="padding:4px 8px;">🗑</button></td></tr>';
+  }).join('');
+}
+
+function addDepense() {
+  var cat=document.getElementById('dep-cat').value;
+  var desc=document.getElementById('dep-desc').value.trim();
+  var montant=parseInt(document.getElementById('dep-montant').value);
+  var date=document.getElementById('dep-date').value;
+  var srcRadio = document.querySelector('input[name="dep-src"]:checked');
+  var src = srcRadio ? srcRadio.value : 'especes';
+  if(!desc||!montant||montant<=0){ alert('Description et montant requis.'); return; }
+  if(!date){ alert('Veuillez sélectionner une date.'); return; }
+  var newDep = {id:nextDepId++, cat:cat, desc:desc, montant:montant, date:date, src:src};
+  fsAddDepense(newDep).then(function(){ if (!db) renderCompta(); });
+  document.getElementById('dep-desc').value='';
+  document.getElementById('dep-montant').value='';
+  var srcLabel = src === 'especes' ? 'Caisse Espèces' : 'Caisse Banque';
+  showToast('✓ Dépense enregistrée sur ' + srcLabel + (!db ? ' (hors-ligne)' : '') + '.', 'green');
+}
+
+function deleteDepense(id){
+  if(!confirm('Supprimer cette dépense ?')) return;
+  var dep = depenses.find(function(d){ return d.id===id; });
+  if (!dep) return;
+  fsDeleteDepense(dep).then(function(){ if (!db) renderCompta(); });
+}
+
+function printCompta() {
+  var collecte=getTotalCollecte(), totalDep=getTotalDepenses(), solde=collecte-totalDep;
+  var today=new Date().toLocaleDateString('fr-FR');
+  var cf=document.getElementById('dep-filter-cat').value;
+  var list=depenses.filter(function(d){ return !cf||d.cat===cf; });
+  list.sort(function(a,b){ return b.date.localeCompare(a.date); });
+  var totCat={};
+  depenses.forEach(function(d){ totCat[d.cat]=(totCat[d.cat]||0)+d.montant; });
+
+  var w=window.open('','_blank','width=900,height=700');
+  var h='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comptabilité '+CONFIG.residence+'</title>';
+  h+='<style>body{font-family:Arial,sans-serif;font-size:12px;color:#0f1f3d;margin:0;padding:20px;}';
+  h+='h1{font-size:20px;margin:0;}h2{font-size:14px;margin:16px 0 8px;border-bottom:2px solid #0f1f3d;padding-bottom:4px;}';
+  h+='.hdr{border-bottom:3px solid #0f1f3d;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;}';
+  h+='.cards{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}';
+  h+='.crd{padding:12px 18px;border-radius:8px;min-width:130px;}';
+  h+='table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px;}';
+  h+='th{background:#0f1f3d;color:#c9a84c;padding:7px 10px;text-align:left;}';
+  h+='td{padding:7px 10px;border-bottom:1px solid #e2e8f0;}tr:nth-child(even){background:#fafbfc;}';
+  h+='.solde{margin-top:20px;padding:14px;border-radius:8px;text-align:center;font-size:20px;font-weight:700;}';
+  h+='.sig{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:12px;color:#64748b;line-height:2.5;}';
+  h+='@media print{body{padding:8px;}}</style></head><body>';
+  h+='<div class="hdr"><div><h1>Comptabilité — Résidence '+CONFIG.residence+'</h1>';
+  h+='<div style="font-size:12px;color:#64748b;margin-top:4px;">Exercice 2025 · Syndic : '+CONFIG.adminNom+'</div>';
+  h+='<div style="font-size:11px;color:#64748b;">Édité le '+today+'</div></div></div>';
+  h+='<div class="cards">';
+  h+='<div class="crd" style="background:#edf7f2;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Collecté</div><div style="font-size:20px;font-weight:700;color:#1e7c4f;">'+collecte.toLocaleString()+' DH</div></div>';
+  h+='<div class="crd" style="background:#fdf0ef;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Dépenses</div><div style="font-size:20px;font-weight:700;color:#c0392b;">'+totalDep.toLocaleString()+' DH</div></div>';
+  h+='<div class="crd" style="background:'+(solde>=0?'#edf7f2':'#fdf0ef')+'"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Solde</div><div style="font-size:20px;font-weight:700;color:'+(solde>=0?'#1e7c4f':'#c0392b')+';">'+solde.toLocaleString()+' DH</div></div>';
+  h+='</div>';
+  h+='<h2>Répartition par catégorie</h2>';
+  h+='<table><thead><tr><th>Catégorie</th><th>Montant total</th><th>% collecté</th></tr></thead><tbody>';
+  Object.keys(totCat).forEach(function(cat){
+    var pct2=collecte>0?(totCat[cat]/collecte*100).toFixed(1):'0.0';
+    h+='<tr><td>'+CAT_ICON[cat]+' '+CAT_LABELS[cat]+'</td><td style="font-weight:600;">'+totCat[cat].toLocaleString()+' DH</td><td>'+pct2+'%</td></tr>';
+  });
+  h+='</tbody></table>';
+  h+='<h2>Détail des dépenses'+(cf?' — '+CAT_ICON[cf]+' '+CAT_LABELS[cf]:' (toutes)')+'</h2>';
+  h+='<table><thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant</th></tr></thead><tbody>';
+  list.forEach(function(d){
+    var ds=d.date?d.date.split('-').reverse().join('/'):'—';
+    h+='<tr><td>'+ds+'</td><td>'+CAT_ICON[d.cat]+' '+CAT_LABELS[d.cat]+'</td><td>'+d.desc+'</td><td style="font-weight:600;color:#c0392b;">'+d.montant.toLocaleString()+' DH</td></tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div class="solde" style="background:'+(solde>=0?'#edf7f2':'#fdf0ef')+';color:'+(solde>=0?'#1e7c4f':'#c0392b')+';">SOLDE DISPONIBLE : '+solde.toLocaleString()+' DH</div>';
+  h+='<div class="sig"><div>Signature du syndic :<br><br><br>____________________<br>'+CONFIG.adminNom+'</div>';
+  h+='<div>Cachet :<br><br><br>____________________<br>Résidence '+CONFIG.residence+'</div></div>';
+  h+='</body></html>';
+  w.document.write(h); w.document.close(); w.focus();
+  setTimeout(function(){ w.print(); },400);
+}
+
+// ═══════════════════════════════════
+//  SUPPRIMER UN APPARTEMENT
+// ═══════════════════════════════════
+function deleteResident(id) {
+  var r = residents.find(function(x){ return x.id===id; });
+  if (!r) return;
+  if (!confirm('Supprimer l\'appartement '+r.appt+' ('+r.prenom+' '+r.nom+') ?\n\nTous les paiements associés seront aussi supprimés.')) return;
+  fsDeleteResident(r);
+  fsDeletePaymentsByResident(id);
+  if (!db) {
+    residents = residents.filter(function(x){ return x.id!==id; });
+    payments  = payments.filter(function(p){ return p.resId!==id; });
+    renderResTable();
+    initDashboard();
+  }
+  showToast('✓ Appartement '+r.appt+' supprimé' + (!db ? ' (hors-ligne)' : '') + '.', 'green');
+}
+
+// ═══════════════════════════════════
+//  SETTINGS MODAL
+// ═══════════════════════════════════
+function openSettingsModal() {
+  document.getElementById('cfg-residence').value = CONFIG.residence;
+  document.getElementById('cfg-ville').value = CONFIG.ville;
+  document.getElementById('cfg-admin').value = CONFIG.adminNom;
+  document.getElementById('cfg-login').value = CONFIG.adminLogin;
+  document.getElementById('cfg-pass').value = '';
+  document.getElementById('cfg-pass-confirm').value = '';
+  document.getElementById('cfg-pass-err').style.display = 'none';
+  document.getElementById('cfg-cotis').value = CONFIG.cotisationMensuelle || 120;
+  // Pre-fill Firebase fields from saved config
+  var fbCfg = loadFbConfig() || {};
+  ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(function(k){
+    var el = document.getElementById('fb-'+k);
+    if (el) el.value = fbCfg[k] || '';
+  });
+  document.getElementById('cfg-fb-err').style.display = 'none';
+  document.getElementById('cfg-fb-ok').style.display = db ? 'block' : 'none';
+  renderImmeublesList();
+  openModal('settings');
+}
+
+function renderImmeublesList() {
+  var imm = CONFIG.immeubles || [];
+  var html = imm.map(function(b, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+      '<input type="text" value="'+b+'" maxlength="10" id="imm-'+i+'" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:DM Sans,sans-serif;color:var(--navy);" placeholder="Nom immeuble">' +
+      '<button onclick="removeImmeuble('+i+')" style="background:var(--red);color:white;border:none;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:13px;" title="Supprimer">🗑</button>' +
+    '</div>';
+  }).join('');
+  document.getElementById('immeubles-list').innerHTML = html || '<div style="color:var(--gray);font-size:12px;padding:8px 0;">Aucun immeuble configuré.</div>';
+  var addBtn = document.getElementById('btn-add-immeuble');
+  if (addBtn) addBtn.disabled = imm.length >= 10;
+}
+
+function addImmeuble() {
+  var imm = CONFIG.immeubles || [];
+  if (imm.length >= 10) return;
+  imm.push('');
+  CONFIG.immeubles = imm;
+  renderImmeublesList();
+  // Focus le nouveau champ
+  setTimeout(function(){ var el = document.getElementById('imm-'+(imm.length-1)); if(el) el.focus(); }, 50);
+}
+
+function removeImmeuble(i) {
+  var imm = CONFIG.immeubles || [];
+  var nom = imm[i];
+  var used = residents.some(function(r){ return r.bat === nom; });
+  if (used && nom) {
+    if (!confirm('⚠ L\'immeuble "'+nom+'" est utilisé par des résidents. Supprimer quand même ?')) return;
+  }
+  imm.splice(i, 1);
+  CONFIG.immeubles = imm;
+  renderImmeublesList();
+}
+
+function collectImmeubles() {
+  var imm = CONFIG.immeubles || [];
+  var result = [];
+  for (var i = 0; i < imm.length; i++) {
+    var el = document.getElementById('imm-'+i);
+    var val = el ? el.value.trim() : imm[i];
+    if (val) result.push(val);
+  }
+  return result;
+}
+
+function saveSettings() {
+  var res   = document.getElementById('cfg-residence').value.trim();
+  var ville = document.getElementById('cfg-ville').value.trim();
+  var admin = document.getElementById('cfg-admin').value.trim();
+  var login = document.getElementById('cfg-login').value.trim();
+  var pass  = document.getElementById('cfg-pass').value;
+  var passC = document.getElementById('cfg-pass-confirm').value;
+  var passErr = document.getElementById('cfg-pass-err');
+  var cotis = parseInt(document.getElementById('cfg-cotis').value)||120;
+
+  if (!res || !admin || !login) { alert('Nom de résidence, syndic et identifiant sont obligatoires.'); return; }
+  if (cotis <= 0) { alert('La cotisation mensuelle doit être supérieure à 0.'); return; }
+
+  // Validation mot de passe
+  if (pass || passC) {
+    if (pass.length < 3) { passErr.textContent = '⚠ Le mot de passe doit contenir au moins 3 caractères.'; passErr.style.display='block'; return; }
+    if (pass !== passC) { passErr.textContent = '⚠ Les mots de passe ne correspondent pas.'; passErr.style.display='block'; return; }
+  }
+  passErr.style.display = 'none';
+
+  var immeubles = collectImmeubles();
+  if (immeubles.length === 0) { alert('Ajoutez au moins un immeuble.'); return; }
+
+  CONFIG.residence  = res;
+  CONFIG.ville      = ville || CONFIG.ville;
+  CONFIG.adminNom   = admin;
+  CONFIG.adminLogin = login;
+  if (pass) CONFIG.adminPass = pass;
+  CONFIG.immeubles  = immeubles;
+  CONFIG.cotisationMensuelle = cotis;
+
+  applyConfig();
+  fsSetConfig(CONFIG);
+  closeModal('settings');
+  initDashboard();
+  showToast('✓ Paramètres enregistrés' + (!db ? ' (hors-ligne, sera synchronisé)' : '') + ' !', 'green');
+}
+
+function exportCSV() {
+  var rows = [['Prénom','Nom','Appartement','Bâtiment','Téléphone','Cotisation','Mois payés','Solde dû','Code PIN']];
+  residents.forEach(function(){ ; })*r.cotis, r.pin]));
+  var csv = rows.map(function(r){ return r.join(';'); }).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = 'syndic_residences.csv';
+  a.click();
+}
+
+// ═══════════════════════════════════
+//  EXPORT / IMPORT JSON (SAUVEGARDE COMPLÈTE)
+// ═══════════════════════════════════
+function exportJSON() {
+  var data = {
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    config: CONFIG,
+    residents: residents,
+    payments: payments,
+    depenses: depenses,
+    nextId: nextId,
+    nextDepId: nextDepId
+  };
+  var json = JSON.stringify(data, null, 2);
+  var a = document.createElement('a');
+  var date = new Date().toISOString().split('T')[0];
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  a.download = 'syndicpro_sauvegarde_' + date + '.json';
+  a.click();
+  showToast('✓ Sauvegarde JSON exportée avec succès !', 'green');
+}
+
+function importJSON() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        if (!data.residents || !Array.isArray(data.residents)) {
+          alert('❌ Fichier invalide : format non reconnu.'); return;
+        }
+        if (!confirm('⚠ Importer cette sauvegarde remplacera toutes les données actuelles.\n\nRésidents : ' + data.residents.length + '\nPaiements : ' + (data.payments||[]).length + '\nDépenses : ' + (data.depenses||[]).length + '\n\nContinuer ?')) return;
+        residents  = data.residents;
+        payments   = data.payments  || [];
+        depenses   = data.depenses  || [];
+        nextId     = data.nextId    || residents.length + 1;
+        nextDepId  = data.nextDepId || 10;
+        if (data.config) {
+          CONFIG.residence  = data.config.residence  || CONFIG.residence;
+          CONFIG.adminNom   = data.config.adminNom   || CONFIG.adminNom;
+          CONFIG.adminLogin = data.config.adminLogin || CONFIG.adminLogin;
+          CONFIG.adminPass  = data.config.adminPass  || CONFIG.adminPass;
+          CONFIG.ville      = data.config.ville      || CONFIG.ville;
+          CONFIG.immeubles  = data.config.immeubles  || CONFIG.immeubles;
+          applyConfig();
+        }
+        saveLocalFallback();
+        // Si Firestore est connecté, on synchronise immédiatement
+        if (db) {
+          residents.forEach(function(r){ var d=Object.assign({},r); delete d._fsId; db.collection('residents').add(d); });
+          payments.forEach(function(p){ var d=Object.assign({},p); delete d._fsId; db.collection('payments').add(d); });
+          depenses.forEach(function(d2){ var d=Object.assign({},d2); delete d._fsId; db.collection('depenses').add(d); });
+          fsSetConfig(CONFIG);
+        }
+        initDashboard();
+        showToast('✓ Sauvegarde importée (' + residents.length + ' résidents)' + (db ? ' et synchronisée.' : ' en mode hors-ligne.'), 'green');
+      } catch(err) {
+        alert('❌ Erreur lors de la lecture du fichier JSON : ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function resetLocalStorage() {
+  if (!confirm('⚠ ATTENTION : Cette action supprime les données locales.\nLes données Firestore ne seront PAS affectées.\n\nContinuer ?')) return;
+  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem(LS_PENDING_KEY);
+  location.reload();
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast-msg');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast-msg';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);transition:opacity 0.4s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'green' ? 'var(--green)' : 'var(--red)';
+  t.style.color = 'white';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.style.opacity = '0'; }, 3000);
+}
+
+// ═══════════════════════════════════
+//  FIREBASE DEPUIS PARAMÈTRES
+// ═══════════════════════════════════
+function connectFirebaseFromSettings() {
+  var errEl = document.getElementById('cfg-fb-err');
+  var okEl  = document.getElementById('cfg-fb-ok');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  var cfg = {
+    apiKey:            document.getElementById('fb-apiKey').value.trim(),
+    authDomain:        document.getElementById('fb-authDomain').value.trim(),
+    projectId:         document.getElementById('fb-projectId').value.trim(),
+    storageBucket:     document.getElementById('fb-storageBucket').value.trim(),
+    messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
+    appId:             document.getElementById('fb-appId').value.trim()
+  };
+
+  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId) {
+    errEl.textContent = '⚠ API Key, Auth Domain et Project ID sont obligatoires.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(cfg);
+    }
+    db = firebase.firestore();
+    db.enablePersistence({ synchronizeTabs: true }).catch(function(e){
+      console.warn('[SyndicPro] Persistance non disponible:', e.code);
+    });
+    saveFbConfig(cfg);
+    setFbStatus('loading');
+    startFirestoreListeners();
+    okEl.style.display = 'block';
+    showToast('🔥 Firebase connecté !', 'green');
+  } catch(e) {
+    errEl.textContent = '❌ Erreur Firebase : ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function disconnectFirebase() {
+  if (!confirm('Déconnecter Firebase et passer en mode local ?\nLes données locales seront conservées.')) return;
+  localStorage.removeItem('syndicpro_firebase_config');
+  db = null;
+  _unsub.forEach(function(u){ try{ u(); }catch(e){} });
+  _unsub = [];
+  setFbStatus('local');
+  document.getElementById('cfg-fb-ok').style.display = 'none';
+  showToast('📴 Firebase déconnecté. Mode local activé.', 'green');
+}
+
+
+function toggleMobileSidebar() {
+  var sidebar = document.getElementById ? document.querySelector('.sidebar') : null;
+  if (!sidebar) return;
+  var overlay = document.getElementById('sidebar-overlay');
+  if (sidebar.classList.contains('open')) {
+    closeMobileSidebar();
+  } else {
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeMobileSidebar() {
+  var sidebar = document.querySelector('.sidebar');
+  var overlay = document.getElementById('sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── Fermer la sidebar quand on clique un nav-item sur mobile ──
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      if (window.innerWidth <= 768) closeMobileSidebar();
+    });
+  });
+});
+
+// ═══════════════════════════════════
+//  MOBILE : BOTTOM NAV
+// ═══════════════════════════════════
+function setActiveBottomNav(activeId) {
+  document.querySelectorAll('.bottom-nav-item').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  var el = document.getElementById(activeId);
+  if (el) el.classList.add('active');
+}
+
+// ═══════════════════════════════════
+//  MOBILE : SYNC BADGES (fb-status + ls-status)
+//  On duplique les badges sur les éléments mobiles
+// ═══════════════════════════════════
+(function patchSetFbStatus() {
+  var _orig = setFbStatus;
+  setFbStatus = function(state) {
+    _orig(state);
+    // Mettre à jour le badge mobile
+    var mobEl = document.getElementById('fb-status-mob');
+    var mainEl = document.getElementById('fb-status');
+    if (mobEl && mainEl) {
+      mobEl.textContent = mainEl.textContent;
+      mobEl.style.background = mainEl.style.background;
+      mobEl.style.color = mainEl.style.color;
+    }
+  };
+})();
+
+(function patchUpdateLsBadge() {
+  var _orig = updateLsBadge;
+  updateLsBadge = function() {
+    _orig();
+    var mobEl = document.getElementById('ls-status-mob');
+    var mainEl = document.getElementById('ls-status');
+    if (mobEl && mainEl) {
+      mobEl.textContent = mainEl.textContent;
+      mobEl.style.background = mainEl.style.background;
+      mobEl.style.color = mainEl.style.color;
+    }
+  };
+})();
+
+// ═══════════════════════════════════
+//  MOBILE : BADGE ARRIÉRÉS bottom nav
+// ═══════════════════════════════════
+(function patchInitDashboard() {
+  var _orig = initDashboard;
+  initDashboard = function() {
+    _orig();
+    // Synchroniser badge arriérés vers bottom nav mobile
+    var src = document.getElementById('nb-arrears');
+    var mob = document.getElementById('nb-arrears-mob');
+    if (src && mob) {
+      var val = src.textContent;
+      mob.textContent = (val && val !== '—' && val !== '0') ? val : '';
+      mob.style.display = (val && val !== '—' && val !== '0') ? 'block' : 'none';
+    }
+  };
+})();
+
+// ═══════════════════════════════════
+//  MOBILE : swipe pour fermer sidebar
+// ═══════════════════════════════════
+(function initSwipe() {
+  var startX = 0;
+  document.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - startX;
+    var sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+    // Swipe gauche (> 60px) : fermer la sidebar
+    if (sidebar.classList.contains('open') && dx < -60) {
+      closeMobileSidebar();
+    }
+    // Swipe droit depuis le bord gauche (< 30px de départ) : ouvrir la sidebar
+    if (!sidebar.classList.contains('open') && startX < 30 && dx > 60) {
+      toggleMobileSidebar();
+    }
+  }, { passive: true });
+})();
+
+</script>
+
+<!-- MODAL: Paramètres résidence -->
+<div class="overlay" id="modal-settings">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-hd">
+      <div class="modal-title">⚙ Paramètres</div>
+      <button class="modal-x" onclick="closeModal('settings')">✕</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px;">💰 Cotisations</div>
+    <div class="fg">
+      <label>Cotisation mensuelle par appartement (DH) *</label>
+      <input type="number" id="cfg-cotis" placeholder="120" min="1">
+      <span style="font-size:11px;color:var(--gray);">Ce montant sera appliqué par défaut lors de l'ajout de résidents.</span>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
+
+    <!-- SECTION : Résidence -->
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px;">🏠 Résidence</div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Nom de la résidence *</label>
+        <input type="text" id="cfg-residence" placeholder="Al Andalus">
+      </div>
+      <div class="fg">
+        <label>Ville</label>
+        <input type="text" id="cfg-ville" placeholder="Casablanca">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Nom du syndic / admin *</label>
+      <input type="text" id="cfg-admin" placeholder="Mohamed Rachidi">
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
+
+    <!-- SECTION : Immeubles -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray);">🏢 Immeubles (max 10)</div>
+      <button id="btn-add-immeuble" class="btn sm primary" onclick="addImmeuble()" style="font-size:12px;padding:5px 12px;">+ Ajouter</button>
+    </div>
+    <div id="immeubles-list" style="margin-bottom:8px;"></div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:4px;">💡 Chaque immeuble correspond à un bâtiment (ex : A, B, Bloc 1, Tour Sud…)</div>
+
+    <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
+
+    <!-- SECTION : Identifiants -->
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px;">🔐 Identifiants de connexion admin</div>
+    <div class="fg">
+      <label>Identifiant de connexion *</label>
+      <input type="text" id="cfg-login" placeholder="syndic" autocomplete="off">
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Nouveau mot de passe</label>
+        <input type="password" id="cfg-pass" placeholder="Laisser vide = inchangé" autocomplete="new-password">
+      </div>
+      <div class="fg">
+        <label>Confirmer le mot de passe</label>
+        <input type="password" id="cfg-pass-confirm" placeholder="Répéter" autocomplete="new-password">
+      </div>
+    </div>
+    <div id="cfg-pass-err" style="display:none;background:var(--red-bg);color:var(--red);border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:8px;"></div>
+
+    <div style="border-top:1px solid var(--border);margin:14px 0;"></div>
+
+    <!-- SECTION : Firebase -->
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray);margin-bottom:6px;">🔥 Base de données Firebase</div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:12px;color:#1d4ed8;margin-bottom:12px;line-height:1.5;">
+      Ces informations se trouvent dans la <strong>Console Firebase → Paramètres du projet → Vos applications → SDK</strong>. Laissez vide pour utiliser le mode local (données stockées sur cet appareil uniquement).
+    </div>
+    <div class="fg">
+      <label>API Key</label>
+      <input type="text" id="fb-apiKey" placeholder="AIzaSy..." autocomplete="off">
+    </div>
+    <div class="fg">
+      <label>Auth Domain</label>
+      <input type="text" id="fb-authDomain" placeholder="mon-projet.firebaseapp.com">
+    </div>
+    <div class="fg">
+      <label>Project ID</label>
+      <input type="text" id="fb-projectId" placeholder="mon-projet-12345">
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Storage Bucket</label>
+        <input type="text" id="fb-storageBucket" placeholder="mon-projet.appspot.com">
+      </div>
+      <div class="fg">
+        <label>Messaging Sender ID</label>
+        <input type="text" id="fb-messagingSenderId" placeholder="123456789">
+      </div>
+    </div>
+    <div class="fg">
+      <label>App ID</label>
+      <input type="text" id="fb-appId" placeholder="1:123:web:abc...">
+    </div>
+    <div id="cfg-fb-err" style="display:none;background:var(--red-bg);color:var(--red);border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:8px;"></div>
+    <div id="cfg-fb-ok" style="display:none;background:var(--green-bg);color:var(--green);border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:8px;">✅ Firebase connecté avec succès !</div>
+    <button class="btn" style="width:100%;margin-bottom:4px;" onclick="connectFirebaseFromSettings()">🔥 Connecter / Reconnecter Firebase</button>
+    <button class="btn" style="width:100%;font-size:12px;color:var(--gray);" onclick="disconnectFirebase()">✕ Déconnecter Firebase (mode local)</button>
+
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('settings')">Annuler</button>
+      <button class="btn primary" onclick="saveSettings()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
