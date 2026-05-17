@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SyndicPro — Gestion Copropriété</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0f1f3d;
+  --navy-light: #1a3260;
+  --gold: #c9a84c;
+  --gold-light: #e8c87a;
+  --cream: #f8f5ef;
+  --white: #ffffff;
+  --red: #c0392b;
+  --red-light: #fdf0ef;
+  --green: #1e7c4f;
+  --green-light: #edf7f2;
+  --amber: #b5650d;
+  --amber-light: #fef3e2;
+  --gray: #64748b;
+  --gray-light: #f1f5f9;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--navy); font-size: 14px; }
+
+/* LAYOUT */
+.app { display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: 240px; background: var(--navy); display: flex; flex-direction: column; flex-shrink: 0; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+
+/* SIDEBAR */
+.sidebar-logo { padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.logo-title { font-family: 'DM Serif Display', serif; color: var(--gold); font-size: 18px; letter-spacing: 0.02em; }
+.logo-sub { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+.nav-section { padding: 1rem 0.75rem 0.5rem; }
+.nav-section-label { color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 0.5rem; margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.15s; font-size: 13px; font-weight: 400; margin-bottom: 2px; }
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+.nav-item.active { background: rgba(201,168,76,0.15); color: var(--gold-light); font-weight: 500; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+.sidebar-footer { margin-top: auto; padding: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.syndic-name { color: rgba(255,255,255,0.5); font-size: 11px; }
+.syndic-role { color: var(--gold); font-size: 12px; font-weight: 500; }
+
+/* TOPBAR */
+.topbar-title { font-weight: 600; font-size: 15px; flex: 1; }
+.topbar-search { flex: 1; max-width: 320px; position: relative; }
+.topbar-search input { width: 100%; padding: 8px 12px 8px 34px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--gray-light); font-family: 'DM Sans', sans-serif; color: var(--navy); }
+.topbar-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--gray); }
+.btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none; font-family: 'DM Sans', sans-serif; }
+.btn-primary { background: var(--navy); color: white; }
+.btn-primary:hover { background: var(--navy-light); }
+.btn-gold { background: var(--gold); color: var(--navy); }
+.btn-gold:hover { background: var(--gold-light); }
+.btn-outline { background: white; color: var(--navy); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--gray-light); }
+.btn-danger { background: var(--red); color: white; }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+
+/* PAGES */
+.page { display: none; }
+.page.active { display: block; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--navy); }
+.stat-card.danger::before { background: var(--red); }
+.stat-card.success::before { background: var(--green); }
+.stat-card.amber::before { background: var(--gold); }
+.stat-label { font-size: 11px; color: var(--gray); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.stat-value { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--navy); }
+.stat-value.red { color: var(--red); }
+.stat-value.green { color: var(--green); }
+.stat-value.gold { color: var(--amber); }
+.stat-sub { font-size: 11px; color: var(--gray); margin-top: 4px; }
+
+/* CARDS */
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.card-title { font-weight: 600; font-size: 14px; }
+.card-subtitle { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { text-align: left; padding: 10px 12px; color: var(--gray); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); background: var(--gray-light); }
+thead th:first-child { border-radius: 8px 0 0 0; }
+thead th:last-child { border-radius: 0 8px 0 0; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:hover { background: var(--gray-light); }
+tbody tr:last-child { border-bottom: none; }
+td { padding: 11px 12px; vertical-align: middle; }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-red { background: var(--red-light); color: var(--red); }
+.badge-green { background: var(--green-light); color: var(--green); }
+.badge-amber { background: var(--amber-light); color: var(--amber); }
+.badge-gray { background: var(--gray-light); color: var(--gray); }
+.badge-navy { background: #e8edf5; color: var(--navy); }
+
+/* AVATAR */
+.avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+.resident-cell { display: flex; align-items: center; gap: 10px; }
+
+/* PROGRESS */
+.progress { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+/* FORM */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.form-group label { font-size: 12px; font-weight: 500; color: var(--gray); }
+.form-group input, .form-group select, .form-group textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--navy); background: white; transition: border-color 0.15s; }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--navy); }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,50,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: white; border-radius: 16px; padding: 1.75rem; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+.modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--navy); }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--gray); font-size: 18px; padding: 4px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+/* FILTERS */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+.filters select, .filters input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--navy); background: white; }
+.filters input { width: 220px; }
+
+/* PORTAL */
+.portal-login { max-width: 420px; margin: 4rem auto; }
+.portal-app { max-width: 600px; margin: 0 auto; }
+.portal-header-card { background: var(--navy); border-radius: 16px; padding: 2rem; color: white; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
+.portal-header-card::after { content: ''; position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(201,168,76,0.15); }
+.portal-avatar { width: 56px; height: 56px; border-radius: 50%; background: rgba(201,168,76,0.2); border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--gold-light); margin-bottom: 1rem; }
+.portal-name { font-family: 'DM Serif Display', serif; font-size: 22px; }
+.portal-appt { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+.portal-balance { margin-top: 1.25rem; }
+.portal-balance-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; }
+.portal-balance-value { font-family: 'DM Serif Display', serif; font-size: 32px; margin-top: 4px; }
+.portal-balance-value.owed { color: #ff8a80; }
+.portal-balance-value.ok { color: #69f0ae; }
+
+/* MONTH GRID */
+.month-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.month-cell { border-radius: 10px; padding: 10px 6px; text-align: center; border: 1px solid var(--border); }
+.month-cell.paid { background: var(--green-light); border-color: #b7e4cf; }
+.month-cell.unpaid { background: var(--red-light); border-color: #f5c6c2; }
+.month-cell.future { background: var(--gray-light); }
+.month-name { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray); }
+.month-cell.paid .month-name { color: var(--green); }
+.month-cell.unpaid .month-name { color: var(--red); }
+.month-amount { font-size: 12px; font-weight: 500; margin-top: 4px; }
+.month-cell.paid .month-amount { color: var(--green); }
+.month-cell.unpaid .month-amount { color: var(--red); }
+
+/* PRINT SHEET */
+.print-sheet { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; font-family: 'DM Sans', sans-serif; }
+.print-sheet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--navy); }
+.print-sheet-logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--navy); }
+.print-sheet-meta { text-align: right; font-size: 12px; color: var(--gray); }
+.print-sheet-subject { background: var(--red-light); border-left: 4px solid var(--red); padding: 12px 16px; margin-bottom: 1.5rem; border-radius: 0 8px 8px 0; }
+.print-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 1rem 0; }
+.print-table th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; font-weight: 500; }
+.print-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.print-table tr:last-child td { font-weight: 600; background: #fef9f0; }
+.print-signature { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 12px; color: var(--gray); }
+
+/* CHARTS */
+.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; cursor: pointer; }
+.bar-label { font-size: 9px; color: var(--gray); text-align: center; }
+.bar-val { font-size: 9px; font-weight: 600; color: var(--navy); }
+
+/* TABS */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.tab { padding: 8px 16px; font-size: 13px; color: var(--gray); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+.tab.active { color: var(--navy); border-color: var(--navy); font-weight: 500; }
+
+/* ALERT */
+.alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 10px; }
+.alert-red { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
+.alert-amber { background: var(--amber-light); color: var(--amber); border: 1px solid #f0d5a0; }
+.alert-green { background: var(--green-light); color: var(--green); border: 1px solid #b7e4cf; }
+
+/* ACTIONS */
+.action-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+@media print {
+  .sidebar, .topbar, .action-bar, .filters, .tabs { display: none !important; }
+  .print-sheet { border: none; box-shadow: none; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">SyndicPro</div>
+    <div class="logo-sub">Résidence Al Andalus · 2025</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Administration</div>
+    <div class="nav-item active" onclick="nav('dashboard', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Tableau de bord
+    </div>
+    <div class="nav-item" onclick="nav('residents', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Résidents
+    </div>
+    <div class="nav-item" onclick="nav('cotisations', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Cotisations
+    </div>
+    <div class="nav-item" onclick="nav('arrieres', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Arriérés
+      <span class="nav-badge" id="arrears-badge">12</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Outils</div>
+    <div class="nav-item" onclick="nav('fiches', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Fiches & Impressions
+    </div>
+    <div class="nav-item" onclick="nav('portal', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Portail Résident
+    </div>
+    <div class="nav-item" onclick="nav('rapports', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Rapports
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="syndic-name">Gestionnaire connecté</div>
+    <div class="syndic-role">Mohamed Rachidi · Syndic</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Tableau de bord</div>
+    <div class="topbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Rechercher un résident, appartement..." oninput="globalSearch(this.value)">
+    </div>
+    <button class="btn btn-gold" onclick="openModal('addResident')">+ Nouveau résident</button>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total appartements</div>
+          <div class="stat-value" id="stat-total">108</div>
+          <div class="stat-sub">Résidence Al Andalus</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Cotisations perçues 2025</div>
+          <div class="stat-value green" id="stat-percues">186 500 DH</div>
+          <div class="stat-sub">Période Jan–Jun 2025</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-label">Arriérés impayés</div>
+          <div class="stat-value red" id="stat-arrieres">42 000 DH</div>
+          <div class="stat-sub" id="stat-nb-arrieres">12 appartements concernés</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Taux de recouvrement</div>
+          <div class="stat-value gold" id="stat-taux">81%</div>
+          <div class="stat-sub">Objectif : 95%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cotisation mensuelle std.</div>
+          <div class="stat-value">600 DH</div>
+          <div class="stat-sub">Par appartement</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Revenus mensuels attendus</div>
+          <div class="stat-value">64 800 DH</div>
+          <div class="stat-sub">108 × 600 DH</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Recouvrement mensuel 2025</div>
+              <div class="card-subtitle">Montants perçus vs attendus</div>
+            </div>
+          </div>
+          <div class="bar-chart" id="bar-chart"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Répartition des statuts</div></div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--green);font-weight:500;">À jour</span><span>89 appts</span></div>
+              <div class="progress"><div class="progress-fill" style="width:82%;background:var(--green);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--amber);font-weight:500;">Retard 1–2 mois</span><span>7 appts</span></div>
+              <div class="progress"><div class="progress-fill" style="width:7%;background:var(--amber);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--red);font-weight:500;">Retard 3+ mois</span><span>12 appts</span></div>
+              <div class="progress"><div class="progress-fill" style="width:11%;background:var(--red);"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);">
+            <div class="card-title" style="margin-bottom:8px;">Top arriérés</div>
+            <div id="top-arrears"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem;">
+        <div class="card-header">
+          <div class="card-title">Derniers paiements enregistrés</div>
+          <button class="btn btn-outline btn-sm" onclick="nav('cotisations', document.querySelectorAll('.nav-item')[2])">Voir tout</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Résident</th><th>Appartement</th><th>Montant</th><th>Mois réglé</th><th>Date paiement</th><th>Mode</th></tr></thead>
+            <tbody id="recent-payments"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESIDENTS -->
+    <div class="page" id="page-residents">
+      <div class="filters">
+        <input type="text" placeholder="Nom, appartement, téléphone..." id="res-search" oninput="renderResidents()">
+        <select id="res-status" onchange="renderResidents()">
+          <option value="">Tous les statuts</option>
+          <option value="ok">À jour</option>
+          <option value="retard1">Retard 1–2 mois</option>
+          <option value="retard3">Retard 3+ mois</option>
+        </select>
+        <select id="res-bat" onchange="renderResidents()">
+          <option value="">Tous les bâtiments</option>
+          <option value="A">Bâtiment A</option>
+          <option value="B">Bâtiment B</option>
+          <option value="C">Bâtiment C</option>
+          <option value="D">Bâtiment D</option>
+        </select>
+        <span style="font-size:12px;color:var(--gray);" id="res-count"></span>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 Export CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addResident')">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Résident</th><th>Appt</th><th>Bât.</th><th>Téléphone</th><th>Cotis./mois</th><th>Payé 2025</th><th>Solde</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="res-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COTISATIONS -->
+    <div class="page" id="page-cotisations">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('tab-payments', this)">Paiements reçus</div>
+        <div class="tab" onclick="switchTab('tab-register', this)">Enregistrer un paiement</div>
+      </div>
+      <div id="tab-payments">
+        <div class="filters">
+          <select id="pay-month" onchange="renderPayments()">
+            <option value="">Tous les mois</option>
+            <option value="01">Janvier</option><option value="02">Février</option><option value="03">Mars</option>
+            <option value="04">Avril</option><option value="05">Mai</option><option value="06">Juin</option>
+          </select>
+          <select id="pay-bat" onchange="renderPayments()">
+            <option value="">Tous les bâtiments</option>
+            <option value="A">Bâtiment A</option><option value="B">Bâtiment B</option><option value="C">Bâtiment C</option><option value="D">Bâtiment D</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <table>
+            <thead><tr><th>Résident</th><th>Appt</th><th>Mois</th><th>Montant</th><th>Mode</th><th>Date</th><th>Reçu</th></tr></thead>
+            <tbody id="pay-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="tab-register" style="display:none;">
+        <div class="card" style="max-width:500px;">
+          <div class="card-header"><div class="card-title">Enregistrer un paiement</div></div>
+          <div class="form-group"><label>Résident / Appartement</label>
+            <select id="reg-resident">
+              <option value="">Sélectionner...</option>
+            </select>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Mois réglé</label>
+              <select id="reg-month">
+                <option value="01">Janvier 2025</option><option value="02">Février 2025</option><option value="03">Mars 2025</option>
+                <option value="04">Avril 2025</option><option value="05">Mai 2025</option><option value="06">Juin 2025</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Montant (DH)</label><input type="number" id="reg-amount" placeholder="600"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Mode de paiement</label>
+              <select id="reg-mode">
+                <option>Espèces</option><option>Virement</option><option>Chèque</option><option>CB</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Date de paiement</label><input type="date" id="reg-date"></div>
+          </div>
+          <div class="form-group"><label>Observations</label><textarea rows="2" placeholder="Optionnel..."></textarea></div>
+          <button class="btn btn-primary" onclick="registerPayment()">✓ Valider le paiement</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARRIERES -->
+    <div class="page" id="page-arrieres">
+      <div class="alert alert-red">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span><strong>42 000 DH</strong> d'arriérés non perçus répartis sur 12 appartements. Certains résidents n'ont pas payé depuis plus de 6 mois.</span>
+      </div>
+      <div class="action-bar" style="margin-bottom:1rem;">
+        <select id="arr-sort" onchange="renderArrieres()">
+          <option value="amount">Trier par montant</option>
+          <option value="months">Trier par mois de retard</option>
+          <option value="name">Trier par nom</option>
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="printAllRelance()">🖨 Imprimer toutes les relances</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 Export</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>Résident</th><th>Appt</th><th>Téléphone</th><th>Mois impayés</th><th>Montant dû</th><th>Priorité</th><th>Dernière relance</th><th>Actions</th></tr></thead>
+          <tbody id="arr-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FICHES -->
+    <div class="page" id="page-fiches">
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:1rem;">
+        <div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:1rem;">Générer une fiche</div>
+            <div class="form-group"><label>Résident</label>
+              <select id="fiche-res" onchange="updatePreview()">
+                <option value="">Sélectionner...</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Type de document</label>
+              <select id="fiche-type" onchange="updatePreview()">
+                <option value="relance">Avis de relance</option>
+                <option value="releve">Relevé de compte annuel</option>
+                <option value="quittance">Quittance de paiement</option>
+                <option value="mise-en-demeure">Mise en demeure</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Période</label>
+              <select id="fiche-period">
+                <option>Janvier–Juin 2025</option>
+                <option>2025 (annuel)</option>
+                <option>Mois en cours</option>
+              </select>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:4px;">
+              <div style="font-size:12px;font-weight:500;color:var(--gray);margin-bottom:8px;">Options</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" checked id="opt-entete"> En-tête syndicat</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" checked id="opt-tableau"> Tableau mensuel</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" id="opt-signature"> Zone signature</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" checked id="opt-mention"> Mentions légales</label>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:1rem;" onclick="window.print()">🖨 Imprimer</button>
+            <button class="btn btn-outline" style="width:100%;margin-top:8px;" onclick="generateAllFiches()">📄 Toutes les relances</button>
+          </div>
+        </div>
+        <div>
+          <div class="print-sheet" id="print-preview">
+            <!-- Filled dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PORTAL -->
+    <div class="page" id="page-portal">
+      <div id="portal-login-view" class="portal-login">
+        <div style="text-align:center;margin-bottom:2rem;">
+          <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--navy);">Portail Résident</div>
+          <div style="color:var(--gray);font-size:14px;margin-top:6px;">Consultez vos cotisations en ligne</div>
+        </div>
+        <div class="card">
+          <div class="form-group"><label>Votre appartement</label>
+            <select id="portal-appt-select">
+              <option value="">Sélectionner votre appartement...</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Code d'accès (4 derniers chiffres de votre téléphone)</label>
+            <input type="password" id="portal-code" placeholder="••••" maxlength="4">
+          </div>
+          <button class="btn btn-primary" style="width:100%;" onclick="portalLogin()">Accéder à mon compte</button>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--gray);margin-top:1rem;">En cas de problème d'accès, contactez le syndic.</div>
+      </div>
+      <div id="portal-app-view" style="display:none;" class="portal-app">
+        <div class="portal-header-card" id="portal-header"></div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Historique des cotisations 2025</div>
+          <div class="month-grid" id="portal-months"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Récapitulatif</div>
+          <div id="portal-recap"></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:1rem;">
+          <button class="btn btn-outline" onclick="portalLogout()">← Déconnexion</button>
+          <button class="btn btn-primary" onclick="nav('fiches', null); setTimeout(()=>updatePreview(),100)">🖨 Imprimer mon relevé</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAPPORTS -->
+    <div class="page" id="page-rapports">
+      <div class="alert alert-amber" style="margin-bottom:1.5rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Rapport généré automatiquement au <strong>17 Janvier 2025</strong>. Données en temps réel.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Synthèse financière</div>
+          <table>
+            <tbody>
+              <tr><td style="color:var(--gray);">Budget prévisionnel annuel</td><td style="text-align:right;font-weight:500;">777 600 DH</td></tr>
+              <tr><td style="color:var(--gray);">Encaissé (6 mois)</td><td style="text-align:right;font-weight:500;color:var(--green);">186 500 DH</td></tr>
+              <tr><td style="color:var(--gray);">Restant à percevoir (S1)</td><td style="text-align:right;font-weight:500;color:var(--red);">42 000 DH</td></tr>
+              <tr><td style="color:var(--gray);">Taux de recouvrement S1</td><td style="text-align:right;font-weight:600;">81,6%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem;">Résidents par statut</div>
+          <table>
+            <tbody>
+              <tr><td><span class="badge badge-green">À jour</span></td><td style="text-align:right;">89 résidents</td></tr>
+              <tr><td><span class="badge badge-amber">Retard 1–2 mois</span></td><td style="text-align:right;">7 résidents</td></tr>
+              <tr><td><span class="badge badge-red">Retard 3+ mois</span></td><td style="text-align:right;">12 résidents</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem;">Évolution du taux de recouvrement</div>
+        <div class="bar-chart" id="rapport-chart" style="height:100px;"></div>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="window.print()">🖨 Imprimer le rapport</button>
+        <button class="btn btn-outline" onclick="exportCSV()">📥 Exporter en CSV</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL: Nouveau résident -->
+<div class="modal-overlay" id="modal-addResident">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nouveau résident</div>
+      <button class="modal-close" onclick="closeModal('addResident')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Prénom</label><input type="text" id="new-prenom" placeholder="Ahmed"></div>
+      <div class="form-group"><label>Nom</label><input type="text" id="new-nom" placeholder="Benali"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Bâtiment</label>
+        <select id="new-bat"><option value="A">Bâtiment A</option><option value="B">Bâtiment B</option><option value="C">Bâtiment C</option><option value="D">Bâtiment D</option></select>
+      </div>
+      <div class="form-group"><label>N° Appartement</label><input type="text" id="new-appt" placeholder="12"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Téléphone</label><input type="text" id="new-tel" placeholder="06 XX XX XX XX"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="new-email" placeholder="exemple@email.com"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Cotisation mensuelle (DH)</label><input type="number" id="new-cotis" value="600"></div>
+      <div class="form-group"><label>Date d'entrée</label><input type="date" id="new-date"></div>
+    </div>
+    <div class="form-group"><label>Observations</label><textarea rows="2" id="new-obs" placeholder="Étage, particularités..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addResident')">Annuler</button>
+      <button class="btn btn-primary" onclick="addResident()">Ajouter le résident</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Paiement rapide -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Enregistrer un paiement</div>
+      <button class="modal-close" onclick="closeModal('payment')">✕</button>
+    </div>
+    <div id="modal-payment-info" style="background:var(--gray-light);border-radius:8px;padding:12px;margin-bottom:1rem;font-size:13px;"></div>
+    <div class="form-group"><label>Mois réglé</label>
+      <select id="qpay-month">
+        <option value="01">Janvier 2025</option><option value="02">Février 2025</option><option value="03">Mars 2025</option>
+        <option value="04">Avril 2025</option><option value="05">Mai 2025</option><option value="06">Juin 2025</option>
+      </select>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Montant (DH)</label><input type="number" id="qpay-amount" value="600"></div>
+      <div class="form-group"><label>Mode de paiement</label>
+        <select id="qpay-mode"><option>Espèces</option><option>Virement</option><option>Chèque</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('payment')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmPayment()">✓ Valider</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const COLORS = ['#1e7c4f','#0f1f3d','#c9a84c','#c0392b','#2563eb','#7c3aed','#0891b2','#dc2626'];
+
+// Generate 108 residents
+const residents = [];
+const bats = ['A','B','C','D'];
+const noms = ['Alami','Benali','Cherkaoui','Drissi','El Fassi','Filali','Guessous','Hajji','Idrissi','Jamai','Khatib','Lahlou','Mansouri','Naji','Ouali','Rachidi','Saidi','Tahiri','Uali','Zaki'];
+const prenoms = ['Mohamed','Ahmed','Fatima','Youssef','Aicha','Karim','Nadia','Hassan','Sara','Omar','Leila','Rachid','Mina','Khalid','Amina','Soufiane','Hind','Mehdi','Zineb','Tarik'];
+
+let resId = 1;
+for (let b = 0; b < 4; b++) {
+  for (let apt = 1; apt <= 27; apt++) {
+    const nom = noms[resId % noms.length];
+    const prenom = prenoms[resId % prenoms.length];
+    const moisPayes = Math.random() > 0.11 ? 6 : Math.floor(Math.random() * 6);
+    const cotis = [500, 600, 700, 800][Math.floor(Math.random()*4)];
+    residents.push({
+      id: resId,
+      nom: nom,
+      prenom: prenom,
+      appt: bats[b] + apt,
+      bat: bats[b],
+      tel: '06 ' + String(60 + resId).padStart(2,'0') + ' ' + String(10 + (resId * 7) % 90).padStart(2,'0') + ' ' + String((resId * 13) % 100).padStart(2,'0'),
+      email: prenom.toLowerCase() + '.' + nom.toLowerCase() + '@email.ma',
+      cotis: cotis,
+      moisPayes: moisPayes,
+      totalMois: 6,
+      initials: prenom[0] + nom[0],
+      color: COLORS[resId % COLORS.length],
+      obs: ''
+    });
+    resId++;
+  }
+}
+
+const payments = [];
+residents.forEach(r => {
+  for (let m = 0; m < r.moisPayes; m++) {
+    const modes = ['Espèces','Virement','Chèque','CB'];
+    payments.push({
+      resId: r.id,
+      nom: r.prenom + ' ' + r.nom,
+      appt: r.appt,
+      bat: r.bat,
+      month: String(m+1).padStart(2,'0'),
+      amount: r.cotis,
+      mode: modes[Math.floor(Math.random()*modes.length)],
+      date: `2025-0${m+1}-${String(Math.floor(Math.random()*25)+1).padStart(2,'0')}`
+    });
+  }
+});
+
+let currentPaymentResident = null;
+let currentTab = 'tab-payments';
+
+// ===================== NAV =====================
+function nav(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {dashboard:'Tableau de bord', residents:'Résidents', cotisations:'Cotisations', arrieres:'Arriérés', fiches:'Fiches & Impressions', portal:'Portail Résident', rapports:'Rapports'};
+  document.getElementById('page-title').textContent = titles[page] || '';
+  if (page === 'residents') renderResidents();
+  if (page === 'arrieres') renderArrieres();
+  if (page === 'cotisations') { renderPayments(); populateResidentSelects(); }
+  if (page === 'fiches') { populateFicheSelect(); updatePreview(); }
+  if (page === 'portal') populatePortalSelect();
+  if (page === 'rapports') renderRapportChart();
+}
+
+// ===================== DASHBOARD =====================
+function initDashboard() {
+  // Bar chart
+  const bc = document.getElementById('bar-chart');
+  const pctData = [92, 87, 89, 78, 74, 65];
+  bc.innerHTML = pctData.map((v, i) => {
+    const col = v >= 85 ? 'var(--green)' : v >= 75 ? 'var(--amber)' : 'var(--red)';
+    const dh = Math.round(v * 648);
+    return `<div class="bar-col">
+      <div class="bar-val">${v}%</div>
+      <div class="bar" style="height:${v}%;background:${col};" title="${dh} DH"></div>
+      <div class="bar-label">${MONTHS[i]}</div>
+    </div>`;
+  }).join('');
+
+  // Top arrears
+  const arr = residents.filter(r => r.moisPayes < r.totalMois).sort((a,b) => (b.totalMois - b.moisPayes) - (a.totalMois - a.moisPayes)).slice(0,4);
+  document.getElementById('top-arrears').innerHTML = arr.map(r => {
+    const owed = (r.totalMois - r.moisPayes) * r.cotis;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span>${r.prenom} ${r.nom} · <span style="color:var(--gray)">${r.appt}</span></span>
+      <span style="color:var(--red);font-weight:600;">${owed.toLocaleString()} DH</span>
+    </div>`;
+  }).join('');
+
+  // Recent payments
+  const recent = [...payments].sort((a,b) => b.date.localeCompare(a.date)).slice(0,6);
+  document.getElementById('recent-payments').innerHTML = recent.map(p => {
+    const r = residents.find(x => x.id === p.resId);
+    return `<tr>
+      <td><div class="resident-cell"><div class="avatar" style="background:${r.color}22;color:${r.color};">${r.initials}</div>${p.nom}</div></td>
+      <td><span class="badge badge-navy">${p.appt}</span></td>
+      <td style="font-weight:600;color:var(--green);">${p.amount.toLocaleString()} DH</td>
+      <td>${MONTHS_FULL[parseInt(p.month)-1]} 2025</td>
+      <td style="color:var(--gray);">${p.date}</td>
+      <td><span class="badge badge-gray">${p.mode}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Arrears badge
+  const nb = residents.filter(r => r.moisPayes < r.totalMois).length;
+  document.getElementById('arrears-badge').textContent = nb;
+}
+
+// ===================== RESIDENTS =====================
+function renderResidents() {
+  const q = (document.getElementById('res-search')?.value || '').toLowerCase();
+  const st = document.getElementById('res-status')?.value || '';
+  const bat = document.getElementById('res-bat')?.value || '';
+
+  let data = residents.filter(r => {
+    const matchQ = !q || (r.prenom + ' ' + r.nom + ' ' + r.appt + ' ' + r.tel).toLowerCase().includes(q);
+    const owed = r.totalMois - r.moisPayes;
+    const matchSt = !st || (st === 'ok' && owed === 0) || (st === 'retard1' && owed <= 2 && owed > 0) || (st === 'retard3' && owed >= 3);
+    const matchBat = !bat || r.bat === bat;
+    return matchQ && matchSt && matchBat;
+  });
+
+  document.getElementById('res-count').textContent = `${data.length} résidents`;
+
+  document.getElementById('res-table').innerHTML = data.map(r => {
+    const owed = r.totalMois - r.moisPayes;
+    const owedDH = owed * r.cotis;
+    const pct = Math.round((r.moisPayes / r.totalMois) * 100);
+    let badge, barColor;
+    if (owed === 0) { badge = '<span class="badge badge-green">À jour</span>'; barColor = 'var(--green)'; }
+    else if (owed <= 2) { badge = '<span class="badge badge-amber">Retard ' + owed + ' mois</span>'; barColor = 'var(--amber)'; }
+    else { badge = '<span class="badge badge-red">Retard ' + owed + ' mois</span>'; barColor = 'var(--red)'; }
+
+    return `<tr>
+      <td><div class="resident-cell"><div class="avatar" style="background:${r.color}22;color:${r.color};">${r.initials}</div><div><div>${r.prenom} ${r.nom}</div><div style="font-size:11px;color:var(--gray);">${r.email}</div></div></div></td>
+      <td><strong>${r.appt}</strong></td>
+      <td>Bât. ${r.bat}</td>
+      <td>${r.tel}</td>
+      <td>${r.cotis.toLocaleString()} DH</td>
+      <td><div style="font-size:12px;">${r.moisPayes}/${r.totalMois}</div><div class="progress"><div class="progress-fill" style="width:${pct}%;background:${barColor};"></div></div></td>
+      <td style="font-weight:${owedDH > 0 ? '600' : '400'};color:${owedDH > 0 ? 'var(--red)' : 'var(--gray)'};">${owedDH > 0 ? owedDH.toLocaleString() + ' DH' : '—'}</td>
+      <td>${badge}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openPaymentModal(${r.id})">+ Paiement</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===================== PAYMENTS =====================
+function renderPayments() {
+  const m = document.getElementById('pay-month')?.value || '';
+  const bat = document.getElementById('pay-bat')?.value || '';
+  let data = payments.filter(p => (!m || p.month === m) && (!bat || p.bat === bat));
+  document.getElementById('pay-table').innerHTML = data.slice(0, 80).map(p => {
+    const r = residents.find(x => x.id === p.resId);
+    return `<tr>
+      <td><div class="resident-cell"><div class="avatar" style="background:${r.color}22;color:${r.color};">${r.initials}</div>${p.nom}</div></td>
+      <td>${p.appt}</td>
+      <td>${MONTHS_FULL[parseInt(p.month)-1]}</td>
+      <td style="color:var(--green);font-weight:600;">${p.amount.toLocaleString()} DH</td>
+      <td><span class="badge badge-gray">${p.mode}</span></td>
+      <td style="color:var(--gray);">${p.date}</td>
+      <td><span class="badge badge-green">✓</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function populateResidentSelects() {
+  const sel = document.getElementById('reg-resident');
+  if (sel) sel.innerHTML = '<option value="">Sélectionner...</option>' + residents.map(r => `<option value="${r.id}">${r.prenom} ${r.nom} — Appt ${r.appt}</option>`).join('');
+  document.getElementById('reg-date').value = new Date().toISOString().split('T')[0];
+}
+
+function registerPayment() {
+  alert('Paiement enregistré avec succès !');
+}
+
+// ===================== ARRIERES =====================
+function renderArrieres() {
+  const sort = document.getElementById('arr-sort')?.value || 'amount';
+  let data = residents.filter(r => r.moisPayes < r.totalMois);
+
+  if (sort === 'amount') data.sort((a,b) => ((b.totalMois - b.moisPayes) * b.cotis) - ((a.totalMois - a.moisPayes) * a.cotis));
+  else if (sort === 'months') data.sort((a,b) => (b.totalMois - b.moisPayes) - (a.totalMois - a.moisPayes));
+  else data.sort((a,b) => a.nom.localeCompare(b.nom));
+
+  document.getElementById('arr-table').innerHTML = data.map(r => {
+    const owed = r.totalMois - r.moisPayes;
+    const owedDH = owed * r.cotis;
+    let badge, rel;
+    if (owed >= 5) { badge = '<span class="badge badge-red">Critique</span>'; rel = '—'; }
+    else if (owed >= 3) { badge = '<span class="badge badge-amber">Élevé</span>'; rel = '15/04/2025'; }
+    else { badge = '<span class="badge badge-navy">Modéré</span>'; rel = '01/06/2025'; }
+    const moisList = MONTHS.slice(r.moisPayes, r.totalMois).join(', ');
+    return `<tr>
+      <td><div class="resident-cell"><div class="avatar" style="background:${r.color}22;color:${r.color};">${r.initials}</div><div><div>${r.prenom} ${r.nom}</div><div style="font-size:11px;color:var(--gray);">${r.tel}</div></div></div></td>
+      <td><strong>${r.appt}</strong></td>
+      <td style="font-size:12px;color:var(--gray);">${r.tel}</td>
+      <td style="font-size:12px;">${moisList}</td>
+      <td style="color:var(--red);font-weight:700;">${owedDH.toLocaleString()} DH</td>
+      <td>${badge}</td>
+      <td style="color:var(--gray);font-size:12px;">${rel}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="printRelance(${r.id})">🖨</button> <button class="btn btn-outline btn-sm" onclick="openPaymentModal(${r.id})">+ Paiement</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===================== FICHES =====================
+function populateFicheSelect() {
+  const sel = document.getElementById('fiche-res');
+  if (sel) sel.innerHTML = '<option value="">Sélectionner...</option>' + residents.map(r => `<option value="${r.id}">${r.prenom} ${r.nom} — Appt ${r.appt}</option>`).join('');
+}
+
+function updatePreview() {
+  const resId = parseInt(document.getElementById('fiche-res')?.value);
+  const type = document.getElementById('fiche-type')?.value || 'relance';
+  const r = residents.find(x => x.id === resId);
+  const preview = document.getElementById('print-preview');
+  if (!preview) return;
+
+  if (!r) {
+    preview.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray);">Sélectionnez un résident pour prévisualiser la fiche.</div>';
+    return;
+  }
+
+  const owed = r.totalMois - r.moisPayes;
+  const owedDH = owed * r.cotis;
+  const typeLabel = {relance:'AVIS DE RELANCE', releve:'RELEVÉ DE COMPTE', quittance:'QUITTANCE DE PAIEMENT', 'mise-en-demeure':'MISE EN DEMEURE'}[type];
+  const today = new Date().toLocaleDateString('fr-FR');
+  const ref = `REF-2025-${r.appt}-${String(r.id).padStart(3,'0')}`;
+
+  const rows = MONTHS_FULL.slice(0, r.totalMois).map((m, i) => {
+    const paid = i < r.moisPayes;
+    return `<tr>
+      <td>${m} 2025</td>
+      <td>${r.cotis.toLocaleString()} DH</td>
+      <td style="color:${paid ? 'var(--green)' : 'var(--red)'};">${paid ? r.cotis.toLocaleString() + ' DH' : '0 DH'}</td>
+      <td style="color:${paid ? 'var(--green)' : 'var(--red)'};">${paid ? '—' : r.cotis.toLocaleString() + ' DH'}</td>
+    </tr>`;
+  }).join('');
+
+  preview.innerHTML = `
+    <div class="print-sheet-header">
+      <div>
+        <div class="print-sheet-logo">Syndicat de Copropriété<br>Résidence Al Andalus</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:4px;">Casablanca · N° Syndic : SYN-2024-042<br>Tél : 05 22 XX XX XX · contact@syndicat-alandalus.ma</div>
+      </div>
+      <div class="print-sheet-meta">
+        <div><strong>${typeLabel}</strong></div>
+        <div style="margin-top:4px;">Réf : ${ref}</div>
+        <div>Date : ${today}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;font-size:13px;">
+      <div><strong>Destinataire :</strong><br>${r.prenom} ${r.nom}<br>Appartement ${r.appt} — Bâtiment ${r.bat}<br>Résidence Al Andalus, Casablanca</div>
+      <div style="text-align:right;"><strong>Coordonnées :</strong><br>${r.tel}<br>${r.email}</div>
+    </div>
+    ${type === 'relance' || type === 'mise-en-demeure' ? `
+    <div class="print-sheet-subject">
+      <strong>Objet :</strong> ${typeLabel} — Cotisations de copropriété impayées (${owed} mois · ${owedDH.toLocaleString()} DH)
+    </div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:1rem;color:#333;">
+      Madame, Monsieur,<br><br>
+      Nous avons le regret de vous informer que, malgré nos rappels précédents, votre compte présente un solde débiteur de <strong>${owedDH.toLocaleString()} DH</strong> au titre des cotisations de copropriété de la Résidence Al Andalus.
+      ${type === 'mise-en-demeure' ? ' <strong>Par la présente, nous vous mettons en demeure de régulariser votre situation dans un délai de 15 jours</strong>, faute de quoi nous serons contraints d\'engager des procédures légales de recouvrement conformément au règlement de copropriété.' : ' Nous vous prions de bien vouloir régulariser votre situation dans les meilleurs délais.'}
+    </p>` : ''}
+    <table class="print-table">
+      <thead><tr><th>Mois</th><th>Cotisation due</th><th>Montant payé</th><th>Solde dû</th></tr></thead>
+      <tbody>
+        ${rows}
+        <tr style="background:#fef9f0;"><td><strong>TOTAL</strong></td><td><strong>${(r.totalMois * r.cotis).toLocaleString()} DH</strong></td><td style="color:var(--green);"><strong>${(r.moisPayes * r.cotis).toLocaleString()} DH</strong></td><td style="color:var(--red);"><strong>${owedDH.toLocaleString()} DH</strong></td></tr>
+      </tbody>
+    </table>
+    <div class="print-signature">
+      <div>Le Syndic de Copropriété<br><br><br>Signature : ________________<br>Date : ${today}</div>
+      <div style="text-align:right;">Pour acquit du résident<br><br><br>Signature : ________________<br>Date : ________________</div>
+    </div>
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);font-size:11px;color:var(--gray);">
+      Règlement par virement bancaire (RIB disponible auprès du syndic) ou espèces au bureau du syndic. Tout retard supplémentaire pourra entraîner des pénalités de retard conformément au règlement de copropriété en vigueur.
+    </div>`;
+}
+
+function printRelance(id) {
+  const r = residents.find(x => x.id === id);
+  populateFicheSelect();
+  nav('fiches', document.querySelectorAll('.nav-item')[4]);
+  setTimeout(() => {
+    document.getElementById('fiche-res').value = id;
+    document.getElementById('fiche-type').value = 'relance';
+    updatePreview();
+  }, 100);
+}
+
+function printAllRelance() {
+  alert('Génération des fiches de relance pour tous les résidents en arriéré. En production, ceci générerait un PDF multi-pages.');
+}
+
+function generateAllFiches() { printAllRelance(); }
+
+// ===================== PORTAIL =====================
+function populatePortalSelect() {
+  const sel = document.getElementById('portal-appt-select');
+  if (sel) sel.innerHTML = '<option value="">Sélectionner votre appartement...</option>' + residents.map(r => `<option value="${r.id}">${r.appt} — ${r.prenom} ${r.nom}</option>`).join('');
+}
+
+function portalLogin() {
+  const resId = parseInt(document.getElementById('portal-appt-select').value);
+  if (!resId) { alert('Veuillez sélectionner votre appartement.'); return; }
+  const r = residents.find(x => x.id === resId);
+  const owed = r.totalMois - r.moisPayes;
+  const owedDH = owed * r.cotis;
+
+  document.getElementById('portal-login-view').style.display = 'none';
+  document.getElementById('portal-app-view').style.display = 'block';
+
+  document.getElementById('portal-header').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="portal-avatar">${r.initials}</div>
+        <div class="portal-name">${r.prenom} ${r.nom}</div>
+        <div class="portal-appt">Appartement ${r.appt} — Bâtiment ${r.bat} — Résidence Al Andalus</div>
+      </div>
+      <div class="portal-balance">
+        <div class="portal-balance-label">${owed > 0 ? 'Solde dû' : 'Situation'}</div>
+        <div class="portal-balance-value ${owed > 0 ? 'owed' : 'ok'}">${owed > 0 ? owedDH.toLocaleString() + ' DH' : '✓ À jour'}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('portal-months').innerHTML = MONTHS_FULL.slice(0, r.totalMois).map((m, i) => {
+    const paid = i < r.moisPayes;
+    return `<div class="month-cell ${paid ? 'paid' : 'unpaid'}">
+      <div class="month-name">${MONTHS[i]}</div>
+      <div style="font-size:18px;margin:4px 0;">${paid ? '✓' : '✗'}</div>
+      <div class="month-amount">${paid ? r.cotis + ' DH' : r.cotis + ' DH'}</div>
+    </div>`;
+  }).join('') + MONTHS.slice(r.totalMois).map(m => `<div class="month-cell future"><div class="month-name">${m}</div><div style="font-size:18px;margin:4px 0;color:var(--gray);">—</div><div class="month-amount" style="color:var(--gray);">À venir</div></div>`).join('');
+
+  document.getElementById('portal-recap').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px;">
+      <div style="text-align:center;padding:12px;background:var(--green-light);border-radius:10px;"><div style="font-size:22px;font-weight:700;color:var(--green);">${r.moisPayes}</div><div style="color:var(--green);">Mois payés</div></div>
+      <div style="text-align:center;padding:12px;background:var(--red-light);border-radius:10px;"><div style="font-size:22px;font-weight:700;color:var(--red);">${owed}</div><div style="color:var(--red);">Mois impayés</div></div>
+      <div style="text-align:center;padding:12px;background:var(--gray-light);border-radius:10px;"><div style="font-size:22px;font-weight:700;">${r.cotis} DH</div><div style="color:var(--gray);">Cotis. mensuelle</div></div>
+    </div>`;
+}
+
+function portalLogout() {
+  document.getElementById('portal-login-view').style.display = 'block';
+  document.getElementById('portal-app-view').style.display = 'none';
+}
+
+// ===================== RAPPORT =====================
+function renderRapportChart() {
+  const chart = document.getElementById('rapport-chart');
+  if (!chart) return;
+  const pctData = [92, 87, 89, 78, 74, 65];
+  chart.innerHTML = pctData.map((v, i) => {
+    const col = v >= 85 ? 'var(--green)' : v >= 75 ? 'var(--amber)' : 'var(--red)';
+    return `<div class="bar-col">
+      <div class="bar-val">${v}%</div>
+      <div class="bar" style="height:${v}%;background:${col};"></div>
+      <div class="bar-label">${MONTHS[i]}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===================== MODAL =====================
+function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+
+function openPaymentModal(resId) {
+  currentPaymentResident = residents.find(r => r.id === resId);
+  document.getElementById('modal-payment-info').innerHTML = `<strong>${currentPaymentResident.prenom} ${currentPaymentResident.nom}</strong> — Appartement ${currentPaymentResident.appt}<br>Cotisation : ${currentPaymentResident.cotis} DH / mois`;
+  document.getElementById('qpay-amount').value = currentPaymentResident.cotis;
+  openModal('payment');
+}
+
+function confirmPayment() {
+  if (!currentPaymentResident) return;
+  const month = parseInt(document.getElementById('qpay-month').value);
+  currentPaymentResident.moisPayes = Math.min(currentPaymentResident.moisPayes + 1, currentPaymentResident.totalMois);
+  closeModal('payment');
+  renderResidents();
+  renderArrieres();
+  alert(`Paiement de ${document.getElementById('qpay-amount').value} DH enregistré pour ${currentPaymentResident.prenom} ${currentPaymentResident.nom} !`);
+}
+
+function addResident() {
+  const prenom = document.getElementById('new-prenom').value;
+  const nom = document.getElementById('new-nom').value;
+  const bat = document.getElementById('new-bat').value;
+  const appt = document.getElementById('new-appt').value;
+  const tel = document.getElementById('new-tel').value;
+  const cotis = parseInt(document.getElementById('new-cotis').value) || 600;
+  if (!prenom || !nom || !appt) { alert('Veuillez remplir les champs obligatoires.'); return; }
+  residents.push({
+    id: resId++, nom, prenom, appt: bat + appt, bat, tel, email: prenom.toLowerCase() + '.' + nom.toLowerCase() + '@email.ma',
+    cotis, moisPayes: 0, totalMois: 6, initials: prenom[0] + nom[0], color: COLORS[resId % COLORS.length], obs: ''
+  });
+  closeModal('addResident');
+  renderResidents();
+  alert(`Résident ${prenom} ${nom} ajouté avec succès !`);
+}
+
+// ===================== MISC =====================
+function switchTab(tabId, el) {
+  document.getElementById('tab-payments').style.display = 'none';
+  document.getElementById('tab-register').style.display = 'none';
+  document.getElementById(tabId).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function globalSearch(q) {
+  if (!q) return;
+  nav('residents', document.querySelectorAll('.nav-item')[1]);
+  setTimeout(() => {
+    document.getElementById('res-search').value = q;
+    renderResidents();
+  }, 50);
+}
+
+function exportCSV() {
+  const rows = [['Prénom','Nom','Appartement','Bâtiment','Téléphone','Cotisation','Mois payés','Solde dû']];
+  residents.forEach(r => rows.push([r.prenom, r.nom, r.appt, r.bat, r.tel, r.cotis, r.moisPayes, ((r.totalMois - r.moisPayes) * r.cotis)]));
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = 'residences_syndicat.csv';
+  a.click();
+}
+
+// INIT
+window.onload = () => {
+  initDashboard();
+};
+</script>
+</body>
+</html>
